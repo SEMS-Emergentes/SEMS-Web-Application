@@ -9,7 +9,7 @@ import UiButton from "./ui/UiButton.vue";
 import UiLoading from "./ui/UiLoading.vue";
 import UiErrorState from "./ui/UiErrorState.vue";
 import QrScannerModal from "./QrScannerModal.vue";
-import { getMeters, linkMeter, deactivateMeter } from "@/services/energy.service";
+import { getMeters, linkMeter, unlinkMeter } from "@/services/energy.service";
 import { useLangStore } from "@/stores/lang";
 import { kwh as fmtKwh } from "@/lib/format";
 
@@ -60,8 +60,8 @@ const link = useMutation({
   },
 });
 
-const deactivate = useMutation({
-  mutationFn: (meterId) => deactivateMeter(meterId),
+const unlink = useMutation({
+  mutationFn: (meterId) => unlinkMeter(meterId),
   onSuccess: () => qc.invalidateQueries({ queryKey: ["meters", props.userId] }),
 });
 
@@ -80,9 +80,9 @@ function onScan(text) {
   link.mutate({ serial: s, model });
 }
 
-function confirmDeactivate(meterId) {
-  if (window.confirm(t("¿Desactivar este medidor?", "Deactivate this meter?"))) {
-    deactivate.mutate(meterId);
+function confirmUnlink(meterId) {
+  if (window.confirm(t("¿Desvincular este medidor de tu cuenta?", "Unlink this meter from your account?"))) {
+    unlink.mutate(meterId);
   }
 }
 </script>
@@ -146,13 +146,13 @@ function confirmDeactivate(meterId) {
           </UiBadge>
           <button
             type="button"
-            :disabled="deactivate.isPending.value"
-            :title="t('Desactivar', 'Deactivate')"
+            :disabled="unlink.isPending.value"
+            :title="t('Desvincular', 'Unlink')"
             class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50 dark:hover:bg-rose-500/10"
-            @click="confirmDeactivate(m.meterId)"
+            @click="confirmUnlink(m.meterId)"
           >
             <LoaderCircle
-              v-if="deactivate.isPending.value"
+              v-if="unlink.isPending.value"
               class="h-4 w-4 animate-spin"
             />
             <Trash2
