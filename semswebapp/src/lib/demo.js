@@ -8,7 +8,7 @@ export const demoUser = {
   id: "u-001",
   email: "demo@energix.pe",
   fullName: "Alexis Encalada",
-  role: "RESIDENT",
+  role: "STAFF",
 };
 
 export const demoDevices = [

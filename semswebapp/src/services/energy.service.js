@@ -2,7 +2,7 @@ import { api, DEMO_MODE, delay } from "@/lib/api";
 import { demoReadings, demoConsumption, demoMeters } from "@/lib/demo";
 import { listDevices } from "./devices.service";
 import { getTariff, DEFAULT_TARIFF } from "@/lib/tariff";
-import { getHomeProfile } from "@/lib/homeStore";
+import { getEstablishmentProfile } from "@/lib/establishmentStore";
 
 // Modulo de energia del backend. Sus recursos responden en snake_case.
 const BASE = "/api/v1";
@@ -177,7 +177,7 @@ export async function getMeters(userId) {
 }
 
 /**
- * Vincula (registra y asocia) un medidor EOS al hogar del residente.
+ * Vincula (registra y asocia) un medidor EOS al establecimiento.
  * El backend exige marca y ubicacion ademas del numero de serie.
  *
  * @returns {Promise<import("../types").EnergyMeter>}
@@ -187,8 +187,8 @@ export async function linkMeter(userId, serial, model = "EOS") {
     await delay(300);
     return { meterId: crypto.randomUUID(), name: model || serial, active: true, lastReadingKwh: 0 };
   }
-  // Ubicacion: usamos la del perfil del hogar si el usuario la configuro.
-  const location = getHomeProfile(userId).location || "Hogar";
+  // Ubicacion: la del perfil del establecimiento si el usuario la configuro.
+  const location = getEstablishmentProfile(userId).location || "Establecimiento";
   const { data } = await api.post(`${BASE}/energy-meters`, {
     user_id: userId,
     meter_serial: serial,

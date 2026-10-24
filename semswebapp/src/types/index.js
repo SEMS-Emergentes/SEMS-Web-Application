@@ -14,7 +14,7 @@
 
 /** @typedef {"HOMEOWNER" | "TENANT"} UserSegment Propietario de vivienda o estudiante/inquilino. */
 
-/** @typedef {"ADMIN" | "RESIDENT" | "GUEST"} UserRole */
+/** @typedef {"ADMIN" | "STAFF"} UserRole Administrador de la plataforma o personal del establecimiento. */
 
 /**
  * @typedef {object} User

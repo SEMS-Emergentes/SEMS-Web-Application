@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { useQuery } from "@tanstack/vue-query";
 import { storeToRefs } from "pinia";
 import {
-  LayoutDashboard, Cpu, Activity, LineChart, Bell, FileText, Home, CreditCard, Zap, X, Lock,
+  LayoutDashboard, Cpu, Activity, LineChart, Bell, FileText, Store, CreditCard, Zap, X, Lock,
 } from "lucide-vue-next";
 import { getMySubscription } from "@/services/subscriptions.service";
 import { useAuthStore } from "@/stores/auth";
@@ -31,7 +31,7 @@ const nav = computed(() => [
   { to: "/alerts", label: t("Alertas", "Alerts"), icon: Bell },
   { to: "/reports", label: t("Reportes", "Reports"), icon: FileText, min: "plus" },
   { to: "/subscription", label: t("Suscripción", "Subscription"), icon: CreditCard },
-  { to: "/household", label: t("Hogar", "Household"), icon: Home },
+  { to: "/establishment", label: t("Establecimiento", "Establishment"), icon: Store },
 ]);
 
 // Comparte clave de cache con la pagina de Suscripcion: no genera peticion extra.
