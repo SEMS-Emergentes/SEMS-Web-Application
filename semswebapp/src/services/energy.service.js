@@ -200,13 +200,17 @@ export async function linkMeter(userId, serial, model = "EOS") {
   return mapMeter(data);
 }
 
-// Desvincula el medidor de la cuenta.
-export async function unlinkMeter(meterId) {
+/**
+ * Desactiva el medidor. El backend no ofrece borrado: marca el medidor como
+ * inactivo y lo sigue devolviendo en la lista del usuario, por eso tras la
+ * operacion aparece como desconectado en lugar de desaparecer.
+ */
+export async function deactivateMeter(meterId) {
   if (DEMO_MODE) {
     await delay(200);
     return;
   }
-  await api.delete(`${BASE}/energy-meters/${meterId}`);
+  await api.patch(`${BASE}/energy-meters/${meterId}/deactivate`);
 }
 
 // --- Resumenes por periodo (RF-MON-06): semana y mes ---

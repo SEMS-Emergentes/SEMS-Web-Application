@@ -137,8 +137,10 @@ export async function resetPassword(token, newPassword) {
   await api.post("/api/v1/auth/reset-password", { token, newPassword });
 }
 
-// Verifica (activa) la cuenta con el token del correo.
+// Verifica (activa) la cuenta con el token del correo. El backend espera el
+// token en el cuerpo de un POST; con GET responde 405 y la cuenta nunca se
+// activa. Devuelve una sesion, que aqui no se usa: el usuario entra a mano.
 export async function verifyAccount(token) {
   if (DEMO_MODE) { await delay(400); return; }
-  await api.get("/api/v1/auth/verify", { params: { token } });
+  await api.post("/api/v1/auth/verify", { token });
 }
