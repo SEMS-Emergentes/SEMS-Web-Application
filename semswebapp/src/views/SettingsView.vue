@@ -47,9 +47,8 @@ const roleLabel = computed(
   () =>
     ({
       ADMIN: t("Administrador", "Administrator"),
-      RESIDENT: t("Residente", "Resident"),
-      GUEST: t("Invitado", "Guest"),
-    }[user.value?.role ?? "RESIDENT"] ?? user.value?.role)
+      STAFF: t("Personal del establecimiento", "Establishment staff"),
+    }[user.value?.role ?? "STAFF"] ?? user.value?.role)
 );
 
 const segments = computed(() => [

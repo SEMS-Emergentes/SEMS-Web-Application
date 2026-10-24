@@ -85,8 +85,8 @@ function download() {
       <p class="text-sm text-slate-500 dark:text-slate-400">
         {{
           allowed
-            ? t("Descarga el reporte de consumo de tu hogar en PDF.", `Download your home's consumption report as PDF.`)
-            : t("Descarga reportes de consumo y gasto de tu hogar.", "Download consumption and cost reports for your home.")
+            ? t("Descarga el reporte de consumo de tu establecimiento en PDF.", `Download your establishment's consumption report as PDF.`)
+            : t("Descarga reportes de consumo y gasto de tu establecimiento.", "Download consumption and cost reports for your establishment.")
         }}
       </p>
     </div>

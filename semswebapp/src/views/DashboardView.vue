@@ -77,7 +77,7 @@ function colorAt(i) {
         {{ t("Hola", "Hi") }}, {{ firstName }}
       </h2>
       <p class="text-sm text-slate-500 dark:text-slate-400">
-        {{ t("Este es el resumen energético de tu hogar.", `This is your home's energy overview.`) }}
+        {{ t("Este es el resumen energético de tu establecimiento.", `This is your establishment's energy overview.`) }}
       </p>
     </div>
 

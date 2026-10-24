@@ -13,7 +13,7 @@ import ConsumptionChart from "@/components/charts/ConsumptionChart.vue";
 import MetersManager from "@/components/MetersManager.vue";
 import PeriodSummaryCard from "@/components/PeriodSummaryCard.vue";
 import { getReadings, getDeviceConsumption, getPeriodComparison } from "@/services/energy.service";
-import { getGoals } from "@/lib/homeStore";
+import { getGoals } from "@/lib/establishmentStore";
 import { useAuthStore } from "@/stores/auth";
 import { useLangStore } from "@/stores/lang";
 import { soles, kwh as fmtKwh } from "@/lib/format";
@@ -98,7 +98,7 @@ function isOverGoal(d) {
         {{ t("Monitoreo", "Monitoring") }}
       </h2>
       <p class="text-sm text-slate-500 dark:text-slate-400">
-        {{ t("Consumo de tu hogar en tiempo real.", `Your home's energy usage in real time.`) }}
+        {{ t("Consumo de tu establecimiento en tiempo real.", `Your establishment's energy usage in real time.`) }}
       </p>
     </div>
 

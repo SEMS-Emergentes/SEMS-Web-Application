@@ -1,8 +1,10 @@
 import { api, DEMO_MODE, delay, tokenStore } from "@/lib/api";
 import { demoUser } from "@/lib/demo";
 
-// Rol por defecto al registrarse desde la web (usuario normal del hogar).
-const DEFAULT_ROLE = "RESIDENT";
+// Rol por defecto al registrarse desde la web: personal del establecimiento.
+// Tiene que ser uno de los que el backend siembra (ADMIN o STAFF); el antiguo
+// RESIDENT desaparecio al cambiar el segmento y hacia fallar el alta.
+const DEFAULT_ROLE = "STAFF";
 
 /**
  * Forma real de la respuesta del modulo de identidad en /auth/login y
@@ -28,7 +30,7 @@ function mapUser(res) {
     id: res.userId,
     email: res.emailAddress,
     fullName: displayNameFromEmail(res.emailAddress),
-    role: res.roles?.[0] ?? "RESIDENT",
+    role: res.roles?.[0] ?? DEFAULT_ROLE,
     segment: normSegment(res.segment),
   };
 }
@@ -48,7 +50,7 @@ function decodeToken(token) {
       id: payload.userId ?? payload.sub ?? "",
       email: payload.email ?? payload.emailAddress ?? "",
       fullName: displayNameFromEmail(payload.email ?? payload.emailAddress ?? ""),
-      role: payload.roles?.[0] ?? "RESIDENT",
+      role: payload.roles?.[0] ?? DEFAULT_ROLE,
     };
   } catch {
     return null;

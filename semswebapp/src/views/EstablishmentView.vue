@@ -2,7 +2,7 @@
 import { ref, computed } from "vue";
 import { useQuery, useQueryClient } from "@tanstack/vue-query";
 import { storeToRefs } from "pinia";
-import { Home, Target, Save, Check, Coins } from "lucide-vue-next";
+import { Store, Target, Save, Check, Coins } from "lucide-vue-next";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiCardTitle from "@/components/ui/UiCardTitle.vue";
 import UiBadge from "@/components/ui/UiBadge.vue";
@@ -13,7 +13,7 @@ import UiErrorState from "@/components/ui/UiErrorState.vue";
 import { getDashboardSummary } from "@/services/dashboard.service";
 import { getDeviceConsumption } from "@/services/energy.service";
 import { kwh as fmtKwh } from "@/lib/format";
-import { getHomeProfile, saveHomeProfile, getGoals, saveGoals } from "@/lib/homeStore";
+import { getEstablishmentProfile, saveEstablishmentProfile, getGoals, saveGoals } from "@/lib/establishmentStore";
 import { getTariff, saveTariff, DEFAULT_TARIFF } from "@/lib/tariff";
 import { useAuthStore } from "@/stores/auth";
 import { useLangStore } from "@/stores/lang";
@@ -49,19 +49,19 @@ function useSavedFlag() {
   return { flag, mark };
 }
 
-// ------------------------------------------------------------ perfil del hogar
-const profile = ref(getHomeProfile(uid.value));
+// --------------------------------------------------- perfil del establecimiento
+const profile = ref(getEstablishmentProfile(uid.value));
 const { flag: savedProfile, mark: markProfile } = useSavedFlag();
 
 function onSaveProfile() {
-  saveHomeProfile(uid.value, profile.value);
+  saveEstablishmentProfile(uid.value, profile.value);
   markProfile();
 }
 
-const housingTypes = computed(() => [
-  ["HOUSE", t("Casa", "House")],
-  ["APARTMENT", t("Departamento", "Apartment")],
-  ["ROOM", t("Habitación / cuarto", "Room")],
+const establishmentTypes = computed(() => [
+  ["SUPERMARKET", t("Supermercado", "Supermarket")],
+  ["STORE", t("Tienda", "Store")],
+  ["WAREHOUSE", t("Almacén", "Warehouse")],
 ]);
 
 // ------------------------------------------------------------------- metas
@@ -115,20 +115,20 @@ function onSaveTariff() {
   <div class="space-y-6">
     <div>
       <h2 class="font-display text-2xl font-extrabold text-slate-900 dark:text-white">
-        {{ t("Mi hogar", "My home") }}
+        {{ t("Mi establecimiento", "My establishment") }}
       </h2>
       <p class="text-sm text-slate-500 dark:text-slate-400">
-        {{ t("Perfil del hogar y metas de consumo.", "Home profile and consumption goals.") }}
+        {{ t("Perfil del establecimiento y metas de consumo.", "Establishment profile and consumption goals.") }}
       </p>
     </div>
 
     <div class="grid gap-6 lg:grid-cols-2">
-      <!-- Perfil del hogar -->
+      <!-- Perfil del establecimiento -->
       <UiCard>
         <UiCardTitle>
-          {{ t("Perfil del hogar", "Home profile") }}
+          {{ t("Perfil del establecimiento", "Establishment profile") }}
           <template #action>
-            <Home class="h-4 w-4 text-slate-400" />
+            <Store class="h-4 w-4 text-slate-400" />
           </template>
         </UiCardTitle>
 
@@ -136,13 +136,13 @@ function onSaveTariff() {
           class="space-y-4"
           @submit.prevent="onSaveProfile"
         >
-          <UiField :label="t('Tipo de vivienda', 'Housing type')">
+          <UiField :label="t('Tipo de establecimiento', 'Establishment type')">
             <select
-              v-model="profile.housingType"
+              v-model="profile.establishmentType"
               class="input-field"
             >
               <option
-                v-for="[val, label] in housingTypes"
+                v-for="[val, label] in establishmentTypes"
                 :key="val"
                 :value="val"
               >
@@ -151,9 +151,9 @@ function onSaveTariff() {
             </select>
           </UiField>
 
-          <UiField :label="t('Número de ambientes', 'Number of rooms')">
+          <UiField :label="t('Número de zonas', 'Number of zones')">
             <input
-              v-model.number="profile.rooms"
+              v-model.number="profile.zones"
               type="number"
               min="1"
               max="30"
@@ -294,8 +294,8 @@ function onSaveTariff() {
       <p class="mb-3 text-xs text-slate-400">
         {{
           t(
-            "Precio por kWh que usa el cálculo de costos de tu hogar.",
-            `Price per kWh used to estimate your home's costs.`
+            "Precio por kWh que usa el cálculo de costos de tu establecimiento.",
+            `Price per kWh used to estimate your establishment's costs.`
           )
         }}
       </p>
