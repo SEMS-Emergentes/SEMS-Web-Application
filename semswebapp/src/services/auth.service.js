@@ -14,7 +14,7 @@ const DEFAULT_ROLE = "STAFF";
 /** @returns {import("../types").UserSegment | undefined} */
 function normSegment(s) {
   const u = String(s ?? "").toUpperCase();
-  return u === "HOMEOWNER" || u === "TENANT" ? u : undefined;
+  return u === "RETAIL_CHAIN" || u === "INDEPENDENT" ? u : undefined;
 }
 
 // El modulo de identidad no guarda nombre, asi que armamos uno para mostrar a

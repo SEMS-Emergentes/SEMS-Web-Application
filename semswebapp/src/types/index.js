@@ -12,7 +12,7 @@
 
 // ----------------------------------------------------------------- identidad
 
-/** @typedef {"HOMEOWNER" | "TENANT"} UserSegment Propietario de vivienda o estudiante/inquilino. */
+/** @typedef {"RETAIL_CHAIN" | "INDEPENDENT"} UserSegment Los dos segmentos objetivo: cadena de retail o establecimiento independiente. */
 
 /** @typedef {"ADMIN" | "STAFF"} UserRole Administrador de la plataforma o personal del establecimiento. */
 
