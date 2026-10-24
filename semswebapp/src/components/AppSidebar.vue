@@ -31,7 +31,7 @@ const nav = computed(() => [
   { to: "/alerts", label: t("Alertas", "Alerts"), icon: Bell },
   { to: "/reports", label: t("Reportes", "Reports"), icon: FileText, min: "plus" },
   { to: "/subscription", label: t("Suscripción", "Subscription"), icon: CreditCard },
-  { to: "/sites", label: t("Mis locales", "My sites"), icon: Building2 },
+  { to: "/sites", label: t("Locales", "Sites"), icon: Building2 },
   { to: "/establishment", label: t("Establecimiento", "Establishment"), icon: Store },
 ]);
 
