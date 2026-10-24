@@ -24,19 +24,21 @@ export const demoPreferences = [
 ];
 
 // ---------- Suscripción y pagos ----------
+// Los tres planes son los mismos que siembra el backend en PlanSeeder y los
+// que publica la landing: el precio va por locales, no por medidores.
 export const demoPlans = [
-  { id: "p-basic", name: "Básica", price: 19, period: "mes", features: ["Consumo en tiempo real", "Avisos de consumo alto", "Panel web del hogar"] },
-  { id: "p-premium", name: "Premium", price: 39, period: "mes", recommended: true, features: ["Todo lo de Básica", "Consumo por dispositivo", "Proyección de factura y metas", "Soporte prioritario"] },
-  { id: "p-annual", name: "Anual", price: 349, period: "año", features: ["Todo lo de Premium", "2 meses gratis", "Asesoría de eficiencia", "Acceso anticipado"] },
+  { id: "p-starter", name: "Starter", price: 0, period: "mes", features: ["1 local incluido", "Hasta 10 medidores por local", "Panel de consumo del local", "Alertas de consumo"] },
+  { id: "p-business", name: "Business", price: 149, period: "mes", recommended: true, features: ["Todo lo de Starter", "5 locales incluidos", "Hasta 50 medidores por local", "Consumo desglosado por zona", "Aviso de demanda antes de superar la potencia contratada", "Reportes de consumo en hora punta"] },
+  { id: "p-enterprise", name: "Enterprise", price: 399, period: "mes", features: ["Todo lo de Business", "Locales y medidores ilimitados", "Comparación de rendimiento entre locales", "Análisis de categoría tarifaria", "Soporte prioritario"] },
 ];
 
 export const demoSubscription = {
   id: "sub-demo-01",
-  planId: "p-premium",
-  planName: "Premium",
+  planId: "p-business",
+  planName: "Business",
   status: "ACTIVE",
   renewalDate: "15 jul 2026",
-  price: 39,
+  price: 149,
   period: "mes",
 };
 
@@ -46,8 +48,8 @@ export const demoPaymentMethods = [
 ];
 
 export const demoInvoices = [
-  { id: "inv-1042", date: "15 jun 2026", amount: 39, status: "PAID", description: "Plan Premium · Junio" },
-  { id: "inv-1019", date: "15 may 2026", amount: 39, status: "PAID", description: "Plan Premium · Mayo" },
-  { id: "inv-0987", date: "15 abr 2026", amount: 39, status: "PAID", description: "Plan Premium · Abril" },
-  { id: "inv-0965", date: "15 mar 2026", amount: 0, status: "PAID", description: "Prueba gratuita" },
+  { id: "inv-1042", date: "15 jun 2026", amount: 149, status: "PAID", description: "Plan Business · Junio" },
+  { id: "inv-1019", date: "15 may 2026", amount: 149, status: "PAID", description: "Plan Business · Mayo" },
+  { id: "inv-0987", date: "15 abr 2026", amount: 149, status: "PAID", description: "Plan Business · Abril" },
+  { id: "inv-0965", date: "15 mar 2026", amount: 0, status: "PAID", description: "Plan Starter" },
 ];

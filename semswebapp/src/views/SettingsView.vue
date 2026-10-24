@@ -21,16 +21,20 @@ const langStore = useLangStore();
 const { lang } = storeToRefs(langStore);
 const { t } = langStore;
 
+// Segmento de partida cuando el usuario todavia no eligio ninguno. Es el
+// primero de los dos segmentos objetivo del proyecto.
+const DEFAULT_SEGMENT = "RETAIL_CHAIN";
+
 // Datos editables del perfil. Se guardan en el navegador via updateProfile:
 // el modulo de identidad no almacena el nombre para mostrar.
 const fullName = ref(user.value?.fullName ?? "");
-const segment = ref(user.value?.segment ?? "HOMEOWNER");
+const segment = ref(user.value?.segment ?? DEFAULT_SEGMENT);
 const saved = ref(false);
 
 const dirty = computed(
   () =>
     fullName.value.trim() !== (user.value?.fullName ?? "") ||
-    segment.value !== (user.value?.segment ?? "HOMEOWNER")
+    segment.value !== (user.value?.segment ?? DEFAULT_SEGMENT)
 );
 
 let savedTimer = null;
@@ -53,14 +57,20 @@ const roleLabel = computed(
 
 const segments = computed(() => [
   {
-    value: "HOMEOWNER",
-    label: t("Propietario de vivienda", "Homeowner"),
-    desc: t("Dueño del hogar y del medidor.", "Owns the home and the meter."),
+    value: "RETAIL_CHAIN",
+    label: t("Cadena de retail", "Retail chain"),
+    desc: t(
+      "Responsable de operaciones o mantenimiento de varios locales.",
+      "Runs operations or maintenance across several stores."
+    ),
   },
   {
-    value: "TENANT",
-    label: t("Estudiante / Inquilino", "Student / Tenant"),
-    desc: t("Alquila o comparte la vivienda.", "Rents or shares the home."),
+    value: "INDEPENDENT",
+    label: t("Establecimiento independiente", "Independent establishment"),
+    desc: t(
+      "Propietario o administrador de un único local.",
+      "Owns or manages a single store."
+    ),
   },
 ]);
 </script>
