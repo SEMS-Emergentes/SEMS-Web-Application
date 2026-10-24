@@ -81,3 +81,34 @@ export const demoSummary = {
   activeDevices: demoDevices.filter((d) => d.status === "ACTIVE").length,
   unreadAlerts: demoAnomalies.filter((a) => !a.resolved).length,
 };
+
+// ---------- Organizacion, locales y zonas ----------
+export const demoOrganization = {
+  organizationId: "org-demo-01",
+  legalName: "Comercial Los Andes S.A.C.",
+  tradeName: "Market Los Andes",
+  taxId: "20512345678",
+  businessType: "SUPERMARKET",
+  status: "ACTIVE",
+};
+
+export const demoSites = [
+  {
+    siteId: "site-demo-01", organizationId: "org-demo-01", siteCode: "LIM-001",
+    name: "Miraflores", address: "Av. Larco 345", district: "Miraflores",
+    floorAreaM2: 620, contractedPowerKw: 95, tariffCategory: "MT2",
+    chargesForDemand: true, excludesSundaysFromPeak: false, status: "ACTIVE",
+  },
+  {
+    siteId: "site-demo-02", organizationId: "org-demo-01", siteCode: "LIM-002",
+    name: "San Isidro", address: "Av. Camino Real 1200", district: "San Isidro",
+    floorAreaM2: 410, contractedPowerKw: 60, tariffCategory: "BT5B",
+    chargesForDemand: false, excludesSundaysFromPeak: false, status: "ACTIVE",
+  },
+];
+
+export const demoZones = [
+  { zoneId: "zone-demo-01", siteId: "site-demo-01", name: "Sala de ventas", zoneType: "SALES_FLOOR", operatesOffHours: false, status: "ACTIVE" },
+  { zoneId: "zone-demo-02", siteId: "site-demo-01", name: "Cámaras de frío", zoneType: "COLD_STORAGE", operatesOffHours: true, status: "ACTIVE" },
+  { zoneId: "zone-demo-03", siteId: "site-demo-02", name: "Almacén", zoneType: "WAREHOUSE", operatesOffHours: false, status: "ACTIVE" },
+];
