@@ -16,6 +16,48 @@
 
 /** @typedef {"ADMIN" | "STAFF"} UserRole Administrador de la plataforma o personal del establecimiento. */
 
+/** @typedef {"SUPERMARKET"|"CONVENIENCE_STORE"|"DEPARTMENT_STORE"|"RESTAURANT"|"WAREHOUSE"|"OTHER"} BusinessType */
+
+/** @typedef {"BT5B"|"BT3"|"BT4"|"MT2"|"MT3"} TariffCategory Pliego tarifario de OSINERGMIN. */
+
+/** @typedef {"SALES_FLOOR"|"COLD_STORAGE"|"WAREHOUSE"|"KITCHEN"|"OFFICES"|"HVAC"|"PARKING"|"OTHER"} ZoneType */
+
+/**
+ * @typedef {object} Organization
+ * @property {string} organizationId
+ * @property {string} legalName  razon social
+ * @property {string} tradeName  nombre comercial
+ * @property {string} taxId      RUC
+ * @property {BusinessType} businessType
+ * @property {string} status
+ */
+
+/**
+ * @typedef {object} Site
+ * @property {string} siteId
+ * @property {string} organizationId
+ * @property {string} siteCode  codigo interno de la sede
+ * @property {string} name
+ * @property {string} address
+ * @property {string} district
+ * @property {number|null} floorAreaM2
+ * @property {number} contractedPowerKw  potencia contratada
+ * @property {TariffCategory} tariffCategory
+ * @property {boolean} chargesForDemand   lo calcula el backend desde la tarifa
+ * @property {boolean} excludesSundaysFromPeak
+ * @property {string} status
+ */
+
+/**
+ * @typedef {object} Zone
+ * @property {string} zoneId
+ * @property {string} siteId
+ * @property {string} name
+ * @property {ZoneType} zoneType
+ * @property {boolean} operatesOffHours
+ * @property {string} status
+ */
+
 /**
  * @typedef {object} User
  * @property {string} id

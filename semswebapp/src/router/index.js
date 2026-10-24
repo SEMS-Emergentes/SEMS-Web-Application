@@ -54,6 +54,7 @@ const routes = [
       { path: "alerts", name: "alerts", component: () => import("@/views/AlertsView.vue"), meta: { title: ["Alertas", "Alerts"] } },
       { path: "subscription", name: "subscription", component: () => import("@/views/SubscriptionView.vue"), meta: { title: ["Suscripción y pagos", "Subscription & payments"] } },
       { path: "reports", name: "reports", component: () => import("@/views/ReportsView.vue"), meta: { title: ["Reportes", "Reports"] } },
+      { path: "sites", name: "sites", component: () => import("@/views/SitesView.vue"), meta: { title: ["Mis locales", "My sites"] } },
       { path: "establishment", name: "establishment", component: () => import("@/views/EstablishmentView.vue"), meta: { title: ["Mi establecimiento", "My establishment"] } },
       { path: "settings", name: "settings", component: () => import("@/views/SettingsView.vue"), meta: { title: ["Configuración", "Settings"] } },
     ],
