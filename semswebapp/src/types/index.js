@@ -48,6 +48,18 @@
  * @property {string} status
  */
 
+/** @typedef {"ORG_ADMIN"|"SUPERVISOR"|"OPERATOR"} MembershipRole */
+
+/**
+ * @typedef {object} Membership
+ * @property {string} membershipId
+ * @property {string} userId
+ * @property {string|null} email  nulo si la cuenta ya no existe
+ * @property {MembershipRole} role
+ * @property {string|null} siteId  solo para SUPERVISOR y OPERATOR
+ * @property {string} status
+ */
+
 /**
  * @typedef {object} Zone
  * @property {string} zoneId
