@@ -161,6 +161,9 @@ function mapMeter(m) {
   return {
     meterId: m.id,
     name: m.model || m.meter_serial,
+    serial: m.meter_serial,
+    siteId: m.site_id ?? null,
+    zoneId: m.zone_id ?? null,
     active: m.status === "active",
     lastReadingKwh: 0,
   };
@@ -182,15 +185,26 @@ export async function getMeters(userId) {
  *
  * @returns {Promise<import("../types").EnergyMeter>}
  */
-export async function linkMeter(userId, serial, model = "EOS") {
+export async function linkMeter(userId, serial, opts = {}) {
+  const { model = "EOS", siteId, zoneId } = opts;
   if (DEMO_MODE) {
     await delay(300);
-    return { meterId: crypto.randomUUID(), name: model || serial, active: true, lastReadingKwh: 0 };
+    return {
+      meterId: crypto.randomUUID(),
+      name: model || serial,
+      serial,
+      siteId: siteId ?? null,
+      zoneId: zoneId ?? null,
+      active: true,
+      lastReadingKwh: 0,
+    };
   }
   // Ubicacion: la del perfil del establecimiento si el usuario la configuro.
   const location = getEstablishmentProfile(userId).location || "Establecimiento";
   const { data } = await api.post(`${BASE}/energy-meters`, {
     user_id: userId,
+    site_id: siteId,
+    zone_id: zoneId || null,
     meter_serial: serial,
     model,
     brand: "EOS",
@@ -198,6 +212,149 @@ export async function linkMeter(userId, serial, model = "EOS") {
     status: "active",
   });
   return mapMeter(data);
+}
+
+/**
+ * Medidores instalados en un local (US20).
+ *
+ * Es la cobertura de medicion del local: cuantos puntos se estan midiendo y
+ * cuales quedan sin medir.
+ *
+ * @returns {Promise<import("../types").EnergyMeter[]>}
+ */
+export async function listMetersBySite(siteId) {
+  if (DEMO_MODE) {
+    await delay(250);
+    return demoMeters.filter((m) => !m.siteId || m.siteId === siteId);
+  }
+  const { data } = await api.get(`${BASE}/energy-meters/site/${siteId}`);
+  return (data ?? []).map(mapMeter);
+}
+
+/**
+ * Medidores de una zona concreta del local (US21).
+ * @returns {Promise<import("../types").EnergyMeter[]>}
+ */
+export async function listMetersByZone(zoneId) {
+  if (DEMO_MODE) {
+    await delay(250);
+    return demoMeters.filter((m) => m.zoneId === zoneId);
+  }
+  const { data } = await api.get(`${BASE}/energy-meters/zone/${zoneId}`);
+  return (data ?? []).map(mapMeter);
+}
+
+/**
+ * Traslada un medidor a otra zona del mismo local (US22).
+ *
+ * Pasar null lo deja sin zona, que es valido: sigue siendo del local. A otro
+ * local no se puede mover, porque seria otro suministro y otro recibo.
+ *
+ * @returns {Promise<import("../types").EnergyMeter>}
+ */
+export async function reassignMeterZone(meterId, zoneId) {
+  if (DEMO_MODE) {
+    await delay(200);
+    return { meterId, zoneId: zoneId || null };
+  }
+  const { data } = await api.patch(`${BASE}/energy-meters/${meterId}/zone`, {
+    zone_id: zoneId || null,
+  });
+  return mapMeter(data);
+}
+
+/**
+ * Tarifa comercial vigente para una categoria del pliego (US27).
+ *
+ * Es la diferencia con una tarifa domestica: no hay un unico precio por kWh,
+ * sino precio en punta, precio fuera de punta y un cargo por potencia que no
+ * depende de cuanta energia se gasto sino del pico mas alto del mes.
+ *
+ * @param {string} category BT5B, BT3, BT4, MT2 o MT3
+ */
+export async function getCommercialTariff(category) {
+  if (DEMO_MODE) {
+    await delay(200);
+    return {
+      provider: "Plus Energia",
+      tariffCategory: category,
+      currency: "PEN",
+      energyPeakPerKwh: 0.281,
+      energyOffPeakPerKwh: 0.2395,
+      powerPerKwMonth: 58.4,
+      excessPowerPerKwMonth: 87.6,
+      fixedCharge: 12.8,
+      igv: 0.18,
+      peakHours: "18:00-23:00 lun-sab",
+      inPeakNow: new Date().getHours() >= 18 && new Date().getHours() < 23,
+    };
+  }
+  const { data } = await api.get(`${BASE}/energy/tariffs/${category}`);
+  return {
+    provider: data.provider,
+    tariffCategory: data.tariff_category,
+    currency: data.currency,
+    energyPeakPerKwh: data.energy_peak_per_kwh ?? 0,
+    energyOffPeakPerKwh: data.energy_off_peak_per_kwh ?? 0,
+    powerPerKwMonth: data.power_per_kw_month ?? 0,
+    excessPowerPerKwMonth: data.excess_power_per_kw_month ?? 0,
+    fixedCharge: data.fixed_charge ?? 0,
+    igv: data.igv ?? 0,
+    peakHours: data.peak_hours,
+    inPeakNow: Boolean(data.in_peak_now),
+  };
+}
+
+/**
+ * Estima el recibo del mes y desglosa cuanto pesa el cargo por potencia (US36).
+ *
+ * El desglose es lo util: ver que una parte del recibo no se paga por consumir
+ * sino por el pico es lo que justifica vigilar la demanda.
+ */
+export async function estimateBill({ tariffCategory, kwhPeak, kwhOffPeak, maxDemandKw,
+  contractedPowerKw }) {
+  const payload = {
+    tariff_category: tariffCategory,
+    kwh_peak: kwhPeak,
+    kwh_off_peak: kwhOffPeak,
+    max_demand_kw: maxDemandKw,
+    contracted_power_kw: contractedPowerKw,
+  };
+  if (DEMO_MODE) {
+    await delay(300);
+    const energia = kwhPeak * 0.281 + kwhOffPeak * 0.2395;
+    const dentro = Math.min(maxDemandKw, contractedPowerKw);
+    const exceso = Math.max(maxDemandKw - contractedPowerKw, 0);
+    const potencia = dentro * 58.4 + exceso * 87.6;
+    const subtotal = energia + potencia + 12.8;
+    return {
+      currency: "PEN",
+      energyCost: +energia.toFixed(2),
+      powerCost: +potencia.toFixed(2),
+      fixedCharge: 12.8,
+      subtotal: +subtotal.toFixed(2),
+      igv: +(subtotal * 0.18).toFixed(2),
+      total: +(subtotal * 1.18).toFixed(2),
+      excessKw: +exceso.toFixed(2),
+      hasExcess: exceso > 0,
+      powerSharePct: +((potencia / subtotal) * 100).toFixed(1),
+    };
+  }
+  const { data } = await api.post(`${BASE}/energy/bill-estimate`, payload);
+  // El peso de la potencia lo calcula el backend: es su respuesta a US36 y no
+  // tiene sentido recalcularla aqui con otro redondeo.
+  return {
+    currency: data.currency,
+    energyCost: data.energy_cost ?? 0,
+    powerCost: data.power_cost ?? 0,
+    fixedCharge: data.fixed_charge ?? 0,
+    subtotal: data.subtotal ?? 0,
+    igv: data.igv ?? 0,
+    total: data.total ?? 0,
+    excessKw: data.excess_power_kw ?? 0,
+    hasExcess: Boolean(data.has_power_excess),
+    powerSharePct: data.power_share_pct ?? null,
+  };
 }
 
 /**
