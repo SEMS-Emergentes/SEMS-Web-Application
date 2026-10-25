@@ -1,5 +1,5 @@
 import { api, DEMO_MODE, delay } from "@/lib/api";
-import { demoOrganization, demoSites, demoZones } from "@/lib/demo";
+import { demoOrganization, demoSites, demoZones, demoMembers } from "@/lib/demo";
 
 // Modulo de organizaciones del backend. Las rutas no comparten un prefijo
 // unico: las de organizacion cuelgan de /organizations, las de zona de /sites
@@ -183,4 +183,59 @@ export async function archiveZone(zoneId) {
     return;
   }
   await api.delete(`${BASE}/zones/${zoneId}`);
+}
+
+/** @returns {import("../types").Membership} */
+function mapMembership(m) {
+  return {
+    membershipId: m.membership_id,
+    userId: m.user_id,
+    // Puede venir nulo si la cuenta se borro y el vinculo quedo huerfano.
+    email: m.email ?? null,
+    role: m.role,
+    siteId: m.site_id ?? null,
+    status: m.status,
+  };
+}
+
+/** @returns {Promise<import("../types").Membership[]>} */
+export async function listMembers(organizationId) {
+  if (DEMO_MODE) {
+    await delay();
+    return demoMembers;
+  }
+  const { data } = await api.get(`${BASE}/organizations/${organizationId}/members`);
+  return (data ?? []).map(mapMembership);
+}
+
+/**
+ * Da acceso a alguien, o cambia el que ya tenia.
+ *
+ * El backend acepta el correo y lo traduce a identificador: quien administra la
+ * organizacion conoce el correo de sus companeros, no su UUID. Si no hay nadie
+ * registrado con ese correo responde 404.
+ *
+ * El alcance lo valida el dominio: un ORG_ADMIN no puede atarse a un local, y
+ * un SUPERVISOR tiene que tener uno.
+ */
+export async function grantMembership(organizationId, { email, role, siteId }) {
+  if (DEMO_MODE) {
+    await delay();
+    return { membershipId: crypto.randomUUID(), userId: crypto.randomUUID(), email, role, siteId: siteId || null, status: "ACTIVE" };
+  }
+  const { data } = await api.post(`${BASE}/organizations/${organizationId}/members`, {
+    email,
+    role,
+    site_id: siteId || null,
+  });
+  return mapMembership(data);
+}
+
+/** Revoca el acceso de una persona a la organizacion. */
+export async function revokeMembership(organizationId, membershipId) {
+  if (DEMO_MODE) {
+    await delay(200);
+    return;
+  }
+  await api.delete(`${BASE}/organizations/${organizationId}/members/${membershipId}`);
 }

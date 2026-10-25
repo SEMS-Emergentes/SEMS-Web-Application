@@ -112,3 +112,9 @@ export const demoZones = [
   { zoneId: "zone-demo-02", siteId: "site-demo-01", name: "Cámaras de frío", zoneType: "COLD_STORAGE", operatesOffHours: true, status: "ACTIVE" },
   { zoneId: "zone-demo-03", siteId: "site-demo-02", name: "Almacén", zoneType: "WAREHOUSE", operatesOffHours: false, status: "ACTIVE" },
 ];
+
+export const demoMembers = [
+  { membershipId: "mem-01", userId: "u-01", email: "alexis@sems.pe", role: "ORG_ADMIN", siteId: null, status: "ACTIVE" },
+  { membershipId: "mem-02", userId: "u-02", email: "valeria@sems.pe", role: "SUPERVISOR", siteId: "site-demo-01", status: "ACTIVE" },
+  { membershipId: "mem-03", userId: "u-03", email: "jorge@sems.pe", role: "OPERATOR", siteId: null, status: "ACTIVE" },
+];
