@@ -193,10 +193,18 @@ export async function processPayment(args) {
 }
 
 /**
- * Historial de facturas.
+ * Historial de comprobantes (US44).
  *
- * El modulo de pagos no expone "facturas por usuario", asi que se arma desde
- * los pagos registrados.
+ * El modulo de pagos no expone "facturas por usuario", asi que la lista se arma
+ * desde los pagos y cada uno se completa con su comprobante.
+ *
+ * Antes se quedaba en el pago y mostraba "Pago PEN" como descripcion: el numero
+ * de comprobante y su PDF nunca llegaban a la pantalla, que es justo lo que uno
+ * necesita para rendir el gasto. Ahora se pide el comprobante de cada pago.
+ *
+ * Un pago sin comprobante emitido no es un error: sigue en la lista sin numero,
+ * porque el pago existe aunque la factura aun no se haya emitido. Por eso cada
+ * consulta va por separado y un fallo suelto no tumba el historial.
  *
  * @returns {Promise<import("../types/billing").Invoice[]>}
  */
@@ -206,13 +214,31 @@ export async function getInvoices(userId) {
     return demoInvoices;
   }
   const { data } = await api.get(`${BASE}/payments/user/${userId}`);
-  return (data ?? []).map((p) => ({
-    id: p.payment_id,
-    date: (p.paid_at || p.created_at || "").slice(0, 10),
-    amount: p.amount ?? 0,
-    status: p.status === "paid" ? "PAID" : p.status === "failed" ? "FAILED" : "PENDING",
-    description: `Pago ${String(p.currency ?? "PEN").toUpperCase()}`,
-  }));
+  const pagos = data ?? [];
+  const comprobantes = await Promise.all(
+    pagos.map(async (p) => {
+      try {
+        const { data: inv } = await api.get(`${BASE}/invoices/payment/${p.payment_id}`);
+        return inv;
+      } catch {
+        return null;
+      }
+    })
+  );
+  return pagos.map((p, i) => {
+    const inv = comprobantes[i];
+    return {
+      id: inv?.invoice_id ?? p.payment_id,
+      number: inv?.invoice_number ?? null,
+      pdfUrl: inv?.pdf_url ?? null,
+      date: (inv?.issued_at || p.paid_at || p.created_at || "").slice(0, 10),
+      amount: inv?.total_amount ?? p.amount ?? 0,
+      status: p.status === "paid" ? "PAID" : p.status === "failed" ? "FAILED" : "PENDING",
+      description: inv?.invoice_number
+        ? `Comprobante ${inv.invoice_number}`
+        : `Pago ${String(p.currency ?? "PEN").toUpperCase()}`,
+    };
+  });
 }
 
 /**
