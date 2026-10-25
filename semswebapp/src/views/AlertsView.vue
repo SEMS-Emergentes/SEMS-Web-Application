@@ -13,6 +13,7 @@ import UiSegmented from "@/components/ui/UiSegmented.vue";
 import UiToggle from "@/components/ui/UiToggle.vue";
 import SeverityBadge from "@/components/ui/SeverityBadge.vue";
 import ThresholdModal from "@/components/ThresholdModal.vue";
+import DemandRulesCard from "@/components/DemandRulesCard.vue";
 import {
   getAlerts,
   updateAlertStatus,
@@ -219,6 +220,13 @@ function isResolving(id) {
 
       <!-- Columna lateral -->
       <div class="space-y-6">
+        <!-- Aviso de demanda: va primero porque es el que evita el cargo mas
+             caro del recibo, no el que mas alertas produce. -->
+        <DemandRulesCard
+          v-if="user"
+          :user-id="user.id"
+        />
+
         <!-- Umbrales -->
         <UiCard>
           <UiCardTitle>

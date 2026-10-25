@@ -13,6 +13,7 @@ import UiLoading from "@/components/ui/UiLoading.vue";
 import UiErrorState from "@/components/ui/UiErrorState.vue";
 import SiteModal from "@/components/SiteModal.vue";
 import MembersCard from "@/components/MembersCard.vue";
+import SiteMetersCard from "@/components/SiteMetersCard.vue";
 import {
   getMyOrganization, createOrganization, updateOrganization,
   listSites, createSite, updateSite, archiveSite,
@@ -629,6 +630,12 @@ const archivarZona = useMutation({
           </form>
         </UiCard>
       </div>
+
+      <SiteMetersCard
+        v-if="seleccionado"
+        :site-id="seleccionado.siteId"
+        :zones="zones ?? []"
+      />
 
       <MembersCard
         :organization-id="org.organizationId"
