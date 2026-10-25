@@ -10,6 +10,7 @@ import UiLoading from "@/components/ui/UiLoading.vue";
 import UiErrorState from "@/components/ui/UiErrorState.vue";
 import UiSegmented from "@/components/ui/UiSegmented.vue";
 import UpgradeGate from "@/components/UpgradeGate.vue";
+import TariffCard from "@/components/TariffCard.vue";
 import { getDashboardSummary } from "@/services/dashboard.service";
 import { getReadings, getDeviceConsumption } from "@/services/energy.service";
 import { generateConsumptionReport } from "@/lib/report";
@@ -172,5 +173,12 @@ function download() {
         </div>
       </template>
     </UiCard>
+
+    <!-- Tarifa del local y peso del cargo por potencia: va aqui porque es la
+         lectura que explica el recibo, junto al resto de los informes. -->
+    <TariffCard
+      v-if="user"
+      :user-id="user.id"
+    />
   </div>
 </template>
