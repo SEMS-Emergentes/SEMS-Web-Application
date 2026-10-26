@@ -56,14 +56,16 @@ export async function applyRecommendation(id) {
 }
 
 /** @returns {Promise<import("../types").Anomaly[]>} */
-export async function getAnomalies(userId) {
+export async function getAnomalies(userId, cargado = {}) {
   if (DEMO_MODE) {
     await delay();
     return demoAnomalies;
   }
+  // Los dispositivos solo sirven para poner nombre donde el backend manda un
+  // identificador; si quien llama ya los tiene, se los pasa.
   const [{ data }, devices] = await Promise.all([
     api.get(`${BASE}/anomalies/user/${userId}`),
-    listDevices(userId).catch(() => []),
+    cargado.devices ?? listDevices(userId).catch(() => []),
   ]);
   // El backend manda el identificador del dispositivo en el campo y tambien
   // dentro del texto; lo reemplazamos por el nombre real para que la
