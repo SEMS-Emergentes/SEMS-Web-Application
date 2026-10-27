@@ -10,7 +10,15 @@ const BASE = "/api/v1";
 // Precio referencial S/ por kWh si el backend no responde.
 const FALLBACK_PRICE = DEFAULT_TARIFF;
 
-async function getReadingsRaw(userId, limit = 200) {
+/**
+ * Lecturas crudas del usuario, tal como las devuelve el backend.
+ *
+ * Esta exportada porque varias vistas necesitan lo mismo por distintos
+ * caminos: el grafico diario, el desglose por equipo y el resumen. Pidiendola
+ * una vez y pasandola a cada calculo, el panel hace una peticion donde antes
+ * hacia cuatro identicas.
+ */
+export async function getReadingsRaw(userId, limit = 200) {
   const { data } = await api.get(`${BASE}/energy-readings/user/${userId}`, { params: { limit } });
   return data ?? [];
 }
@@ -39,10 +47,23 @@ export async function getPricePerKwh() {
  * Lecturas agregadas por dia dentro de la ventana pedida.
  * @returns {Promise<import("../types").EnergyReading[]>}
  */
-export async function getReadings(userId, days = 14) {
+export async function getReadings(userId, days = 14, cargado = {}) {
   if (DEMO_MODE) { await delay(); return demoReadings(days); }
-  const readings = await getReadingsRaw(userId);
-  const price = await getPricePerKwh();
+  const readings = cargado.readings ?? (await getReadingsRaw(userId));
+  const price = cargado.price ?? (await getPricePerKwh());
+  return aggregateByDay(readings, price, days);
+}
+
+/**
+ * Agrupa lecturas crudas por dia dentro de la ventana pedida.
+ *
+ * Es una funcion pura: no pide nada. Asi el mismo conjunto de lecturas sirve
+ * para varias ventanas (14 dias en el grafico, 30 en el resumen) sin volver a
+ * consultar el backend.
+ *
+ * @returns {import("../types").EnergyReading[]}
+ */
+export function aggregateByDay(readings, price, days = 14) {
   const cutoff = Date.now() - days * 86_400_000;
   const byDay = new Map();
   for (const r of readings) {
@@ -72,8 +93,8 @@ export async function getReadings(userId, days = 14) {
  * Compara el periodo actual (ultimos N dias) contra el anterior equivalente.
  * @returns {Promise<PeriodComparison>}
  */
-export async function getPeriodComparison(userId, days = 7) {
-  const readings = await getReadings(userId, days * 2); // agregadas por dia
+export async function getPeriodComparison(userId, days = 7, cargado = {}) {
+  const readings = await getReadings(userId, days * 2, cargado); // agregadas por dia
   const cutoffMs = Date.now() - days * 86_400_000;
   let currentKwh = 0, previousKwh = 0, currentCost = 0, previousCost = 0;
   for (const r of readings) {
@@ -101,12 +122,13 @@ export async function getPeriodComparison(userId, days = 7) {
  * Consumo por dispositivo del periodo.
  * @returns {Promise<import("../types").DeviceConsumption[]>}
  */
-export async function getDeviceConsumption(userId) {
+export async function getDeviceConsumption(userId, cargado = {}) {
   if (DEMO_MODE) { await delay(); return demoConsumption; }
 
   // Dispositivos vigentes del usuario: sirven para poner nombre y para
   // descartar los que ya fueron eliminados (no deben seguir apareciendo).
-  const devices = await listDevices(userId).catch(() => []);
+  // Si quien llama ya los tiene, los pasa y no se vuelven a pedir.
+  const devices = cargado.devices ?? (await listDevices(userId).catch(() => []));
   const nameById = new Map(devices.map((d) => [d.deviceId, d.deviceName]));
   const exists = (id) => devices.length === 0 || nameById.has(id);
 
@@ -136,8 +158,8 @@ export async function getDeviceConsumption(userId) {
 
   // 2) Estimacion: agrupa las lecturas por dispositivo.
   const [readings, price] = await Promise.all([
-    getReadingsRaw(userId),
-    getPricePerKwh(),
+    cargado.readings ?? getReadingsRaw(userId),
+    cargado.price ?? getPricePerKwh(),
   ]);
   const kwhByDevice = new Map();
   for (const r of readings) {

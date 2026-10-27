@@ -183,9 +183,9 @@
  *
  * @typedef {object} DashboardSummary
  * @property {number} currentMonthCost
- * @property {number} savingAmount
- * @property {number} savingPct
- * @property {number} projectedCost
+ * @property {number | null} savingAmount null cuando no hay periodo anterior con el que comparar.
+ * @property {number | null} savingPct null cuando no hay periodo anterior con el que comparar.
+ * @property {number | null} projectedCost null cuando todavia no hay lecturas.
  * @property {number} totalKwh
  * @property {number} activeDevices
  * @property {number} unreadAlerts
