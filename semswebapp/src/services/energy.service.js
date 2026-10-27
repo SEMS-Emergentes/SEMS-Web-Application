@@ -1,5 +1,11 @@
 import { api, DEMO_MODE, delay } from "@/lib/api";
-import { demoReadings, demoConsumption, demoMeters } from "@/lib/demo";
+import {
+  demoReadings,
+  demoConsumption,
+  demoMeters,
+  demoZoneConsumption,
+  demoSiteComparison,
+} from "@/lib/demo";
 import { listDevices } from "./devices.service";
 import { getTariff, DEFAULT_TARIFF } from "@/lib/tariff";
 import { getEstablishmentProfile } from "@/lib/establishmentStore";
@@ -176,6 +182,82 @@ export async function getDeviceConsumption(userId, cargado = {}) {
       cost: +(kwh * price).toFixed(2),
       pct: Math.round((kwh / total) * 100),
     }));
+}
+
+/** @returns {import("../types").ZoneShare} */
+function mapZoneShare(z) {
+  return {
+    zoneId: z.zone_id ?? null,
+    zoneName: z.zone_name ?? null,
+    zoneType: z.zone_type ?? null,
+    meterCount: z.meter_count ?? 0,
+    kwh: z.kwh ?? 0,
+    sharePercent: z.share_percent ?? 0,
+    estimatedEnergyCost: z.estimated_energy_cost ?? null,
+  };
+}
+
+/**
+ * Consumo de un local repartido entre sus zonas (US26).
+ *
+ * El backend reparte las lecturas segun la zona del medidor y separa la energia
+ * de punta de la de fuera de punta para ponerle precio; aqui solo se traduce la
+ * forma del recurso.
+ *
+ * @returns {Promise<import("../types").ZoneConsumption>}
+ */
+export async function getZoneConsumption(siteId, days = 30) {
+  if (DEMO_MODE) {
+    await delay();
+    return demoZoneConsumption;
+  }
+  const { data } = await api.get(`${BASE}/sites/${siteId}/zone-consumption`, { params: { days } });
+  return {
+    siteId: data.site_id,
+    siteName: data.site_name,
+    days: data.days,
+    totalKwh: data.total_kwh ?? 0,
+    currency: data.currency ?? "PEN",
+    zones: (data.zones ?? []).map(mapZoneShare),
+    unassigned: mapZoneShare(data.unassigned ?? {}),
+  };
+}
+
+/**
+ * Consumo de cada local de la organizacion, para compararlos (US39).
+ *
+ * Trae tambien el consumo por kW contratado: entre locales de distinto tamano
+ * el total no dice nada, y es esa cifra la que senala cual gasta de mas.
+ *
+ * @returns {Promise<import("../types").SiteComparison>}
+ */
+export async function getSiteComparison(organizationId, days = 30) {
+  if (DEMO_MODE) {
+    await delay();
+    return demoSiteComparison;
+  }
+  const { data } = await api.get(`${BASE}/organizations/${organizationId}/site-consumption`, {
+    params: { days },
+  });
+  return {
+    organizationId: data.organization_id,
+    days: data.days,
+    totalKwh: data.total_kwh ?? 0,
+    currency: data.currency ?? "PEN",
+    sites: (data.sites ?? []).map((s) => ({
+      siteId: s.site_id,
+      siteCode: s.site_code,
+      siteName: s.site_name,
+      contractedPowerKw: s.contracted_power_kw ?? null,
+      tariffCategory: s.tariff_category ?? null,
+      meterCount: s.meter_count ?? 0,
+      kwh: s.kwh ?? 0,
+      sharePercent: s.share_percent ?? 0,
+      estimatedEnergyCost: s.estimated_energy_cost ?? null,
+      kwhPerContractedKw: s.kwh_per_contracted_kw ?? null,
+      peakDemandKw: s.peak_demand_kw ?? 0,
+    })),
+  };
 }
 
 /** @returns {import("../types").EnergyMeter} */
