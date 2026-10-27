@@ -8,9 +8,11 @@ import UiCardTitle from "@/components/ui/UiCardTitle.vue";
 import UiBadge from "@/components/ui/UiBadge.vue";
 import UiLoading from "@/components/ui/UiLoading.vue";
 import UiErrorState from "@/components/ui/UiErrorState.vue";
+import UiEmptyState from "@/components/ui/UiEmptyState.vue";
 import UiSegmented from "@/components/ui/UiSegmented.vue";
 import ConsumptionChart from "@/components/charts/ConsumptionChart.vue";
 import MetersManager from "@/components/MetersManager.vue";
+import ZoneConsumptionCard from "@/components/ZoneConsumptionCard.vue";
 import PeriodSummaryCard from "@/components/PeriodSummaryCard.vue";
 import { getReadings, getDeviceConsumption, getPeriodComparison } from "@/services/energy.service";
 import { getGoals } from "@/lib/establishmentStore";
@@ -103,6 +105,11 @@ function isOverGoal(d) {
     </div>
 
     <MetersManager
+      v-if="user"
+      :user-id="user.id"
+    />
+
+    <ZoneConsumptionCard
       v-if="user"
       :user-id="user.id"
     />
@@ -229,7 +236,15 @@ function isOverGoal(d) {
     <UiCard>
       <UiCardTitle>{{ t("Detalle por dispositivo", "Device breakdown") }}</UiCardTitle>
       <UiLoading v-if="loadingConsumption" />
-      <UiErrorState v-else-if="errorConsumption || !consumption" />
+      <UiErrorState v-else-if="errorConsumption" />
+      <UiEmptyState
+        v-else-if="(consumption?.length ?? 0) === 0"
+        :message="t('Sin consumo por equipo.', 'No per-device usage.')"
+        :hint="t(
+          'El consumo medido por medidor se reparte por zona, más arriba.',
+          'Usage measured by meter is split by zone, above.',
+        )"
+      />
       <div
         v-else
         class="overflow-x-auto"
