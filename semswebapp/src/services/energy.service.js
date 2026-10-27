@@ -169,6 +169,11 @@ export async function getDeviceConsumption(userId, cargado = {}) {
   ]);
   const kwhByDevice = new Map();
   for (const r of readings) {
+    // Una lectura de medidor sin equipo es consumo del local y no entra en el
+    // desglose por equipo. Antes entraba con identificador nulo y reventaba el
+    // mapeo, de modo que quien mide por medidor —el caso de un local con zonas—
+    // veia un error rojo en vez de una lista vacia.
+    if (!r.device_id) continue;
     if (!exists(r.device_id)) continue; // lecturas de dispositivos eliminados
     kwhByDevice.set(r.device_id, (kwhByDevice.get(r.device_id) ?? 0) + (r.energy_kwh ?? 0));
   }
