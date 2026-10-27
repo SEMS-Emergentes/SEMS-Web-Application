@@ -30,7 +30,7 @@ const days = ref(30);
 const generating = ref(false);
 
 // La generacion de reportes es de plan Plus en adelante.
-const allowed = computed(() => hasTier(tier.value, "plus"));
+const allowed = computed(() => hasTier(tier.value, "business"));
 const enabled = computed(() => Boolean(user.value) && allowed.value);
 
 const { data: summary, isLoading: loadingSummary, isError: errorSummary } = useQuery({
@@ -94,7 +94,7 @@ function download() {
 
     <UpgradeGate
       v-if="!allowed"
-      required="plus"
+      required="business"
       :title="t('Reportes mensuales', 'Monthly reports')"
       :description="
         t(

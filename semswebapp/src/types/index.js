@@ -191,4 +191,50 @@
  * @property {number} unreadAlerts
  */
 
+/**
+ * @typedef {object} ZoneShare
+ * @property {string | null} zoneId null en el consumo de medidores sin zona asignada.
+ * @property {string | null} zoneName
+ * @property {string | null} zoneType
+ * @property {number} meterCount
+ * @property {number} kwh
+ * @property {number} sharePercent
+ * @property {number | null} estimatedEnergyCost null si el local no tiene tarifa reconocida.
+ */
+
+/**
+ * @typedef {object} ZoneConsumption
+ * @property {string} siteId
+ * @property {string} siteName
+ * @property {number} days
+ * @property {number} totalKwh
+ * @property {string} currency
+ * @property {ZoneShare[]} zones
+ * @property {ZoneShare} unassigned
+ */
+
+/**
+ * @typedef {object} SiteShare
+ * @property {string} siteId
+ * @property {string} siteCode
+ * @property {string} siteName
+ * @property {number | null} contractedPowerKw
+ * @property {string | null} tariffCategory
+ * @property {number} meterCount
+ * @property {number} kwh
+ * @property {number} sharePercent
+ * @property {number | null} estimatedEnergyCost
+ * @property {number | null} kwhPerContractedKw Consumo por kW contratado: lo comparable entre locales de distinto tamano.
+ * @property {number} peakDemandKw
+ */
+
+/**
+ * @typedef {object} SiteComparison
+ * @property {string} organizationId
+ * @property {number} days
+ * @property {number} totalKwh
+ * @property {string} currency
+ * @property {SiteShare[]} sites
+ */
+
 export {};

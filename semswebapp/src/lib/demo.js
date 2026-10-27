@@ -113,6 +113,32 @@ export const demoZones = [
   { zoneId: "zone-demo-03", siteId: "site-demo-02", name: "Almacén", zoneType: "WAREHOUSE", operatesOffHours: false, status: "ACTIVE" },
 ];
 
+// Reparto por zona del local de Miraflores (US26) y comparacion entre los dos
+// locales (US39). Los numeros cuadran con demoZones y demoSites.
+export const demoZoneConsumption = {
+  siteId: "site-demo-01",
+  siteName: "Miraflores",
+  days: 30,
+  totalKwh: 2480,
+  currency: "PEN",
+  zones: [
+    { zoneId: "zone-demo-02", zoneName: "Cámaras de frío", zoneType: "COLD_STORAGE", meterCount: 2, kwh: 1364, sharePercent: 55, estimatedEnergyCost: 505.2 },
+    { zoneId: "zone-demo-01", zoneName: "Sala de ventas", zoneType: "SALES_FLOOR", meterCount: 1, kwh: 868, sharePercent: 35, estimatedEnergyCost: 286.4 },
+  ],
+  unassigned: { zoneId: null, zoneName: null, zoneType: null, meterCount: 1, kwh: 248, sharePercent: 10, estimatedEnergyCost: 81.8 },
+};
+
+export const demoSiteComparison = {
+  organizationId: "org-demo-01",
+  days: 30,
+  totalKwh: 3720,
+  currency: "PEN",
+  sites: [
+    { siteId: "site-demo-01", siteCode: "LIM-001", siteName: "Miraflores", contractedPowerKw: 95, tariffCategory: "MT2", meterCount: 4, kwh: 2480, sharePercent: 66.7, estimatedEnergyCost: 873.4, kwhPerContractedKw: 26.1, peakDemandKw: 78.4 },
+    { siteId: "site-demo-02", siteCode: "LIM-002", siteName: "San Isidro", contractedPowerKw: 60, tariffCategory: "BT5B", meterCount: 2, kwh: 1240, sharePercent: 33.3, estimatedEnergyCost: 441.9, kwhPerContractedKw: 20.7, peakDemandKw: 41.2 },
+  ],
+};
+
 export const demoMembers = [
   { membershipId: "mem-01", userId: "u-01", email: "alexis@sems.pe", role: "ORG_ADMIN", siteId: null, status: "ACTIVE" },
   { membershipId: "mem-02", userId: "u-02", email: "valeria@sems.pe", role: "SUPERVISOR", siteId: "site-demo-01", status: "ACTIVE" },

@@ -5,6 +5,7 @@ import {
   demoPaymentMethods,
   demoInvoices,
 } from "@/lib/demoExtra";
+import { tierFromName } from "@/lib/plan";
 
 // Suscripciones y pagos. Ambos modulos exponen sus rutas bajo /api/v1.
 const BASE = "/api/v1";
@@ -43,7 +44,10 @@ function mapPlan(p) {
     price: p.Price ?? 0,
     period: periodLabel(p.BillingPeriod),
     features: planFeatures(p),
-    recommended: (p.Name ?? "").toLowerCase().includes("pro"),
+    // El plan intermedio es el que se destaca. Buscaba "pro", que con el
+    // catalogo actual (Starter, Business, Enterprise) no es ninguno: la
+    // pagina de planes se quedaba sin recomendacion.
+    recommended: tierFromName(p.Name) === "business",
   };
 }
 
