@@ -55,7 +55,11 @@ const routes = [
       { path: "subscription", name: "subscription", component: () => import("@/views/SubscriptionView.vue"), meta: { title: ["Suscripción y pagos", "Subscription & payments"] } },
       { path: "reports", name: "reports", component: () => import("@/views/ReportsView.vue"), meta: { title: ["Reportes", "Reports"] } },
       { path: "sites", name: "sites", component: () => import("@/views/SitesView.vue"), meta: { title: ["Mis locales", "My sites"] } },
-      { path: "establishment", name: "establishment", component: () => import("@/views/EstablishmentView.vue"), meta: { title: ["Mi establecimiento", "My establishment"] } },
+      // "Mi establecimiento" guardaba en el navegador el tipo de negocio, el
+      // numero de zonas y la ubicacion: tres copias de datos que ya viven en la
+      // organizacion y en el local. Se retiro, y la ruta antigua lleva a donde
+      // se editan de verdad.
+      { path: "establishment", redirect: { name: "sites" } },
       { path: "settings", name: "settings", component: () => import("@/views/SettingsView.vue"), meta: { title: ["Configuración", "Settings"] } },
     ],
   },
