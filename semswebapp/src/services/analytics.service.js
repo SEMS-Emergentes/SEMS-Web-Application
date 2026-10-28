@@ -111,7 +111,7 @@ export async function getBillPrediction(userId) {
 }
 
 /** @returns {Promise<import("../types").ConsumptionRanking[]>} */
-export async function getRankings(userId) {
+export async function getRankings(userId, cargado = {}) {
   if (DEMO_MODE) {
     await delay();
     return demoRankings;
@@ -120,7 +120,7 @@ export async function getRankings(userId) {
   const root = Array.isArray(data) ? data[0] : data;
   const items = (root?.rankings ?? (Array.isArray(data) ? data : [])) ?? [];
 
-  const devices = await listDevices(userId).catch(() => []);
+  const devices = cargado.devices ?? (await listDevices(userId).catch(() => []));
   const nameById = new Map(devices.map((d) => [d.deviceId, d.deviceName]));
 
   return items

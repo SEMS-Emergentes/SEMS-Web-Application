@@ -14,8 +14,14 @@ import ConsumptionChart from "@/components/charts/ConsumptionChart.vue";
 import MetersManager from "@/components/MetersManager.vue";
 import ZoneConsumptionCard from "@/components/ZoneConsumptionCard.vue";
 import PeriodSummaryCard from "@/components/PeriodSummaryCard.vue";
-import { getReadings, getDeviceConsumption, getPeriodComparison } from "@/services/energy.service";
-import { getGoals } from "@/lib/establishmentStore";
+import {
+  aggregateByDay,
+  getDeviceConsumption,
+  getReadingsRaw,
+} from "@/services/energy.service";
+import { listDevices } from "@/services/devices.service";
+import GoalsCard from "@/components/GoalsCard.vue";
+import { getGoals } from "@/lib/goalsStore";
 import { useAuthStore } from "@/stores/auth";
 import { useLangStore } from "@/stores/lang";
 import { soles, kwh as fmtKwh } from "@/lib/format";
@@ -28,29 +34,60 @@ const days = ref(14);
 
 const enabled = computed(() => Boolean(user.value));
 
-const { data: readings, isLoading: loadingReadings, isError: errorReadings } = useQuery({
-  queryKey: computed(() => ["readings", user.value?.id, days.value]),
-  queryFn: () => getReadings(user.value.id, days.value),
+// Las lecturas crudas se piden una vez y de ahi sale todo: el grafico, los
+// totales, la comparacion de periodos y el desglose por equipo. Antes cada uno
+// las pedia por su cuenta y el mismo GET salia cuatro veces por carga.
+const { data: rawReadings, isLoading: loadingReadings, isError: errorReadings } = useQuery({
+  queryKey: computed(() => ["readings-raw", user.value?.id]),
+  queryFn: () => getReadingsRaw(user.value.id),
   enabled,
 });
+
+const { data: devices } = useQuery({
+  queryKey: computed(() => ["devices", user.value?.id]),
+  queryFn: () => listDevices(user.value.id),
+  enabled,
+});
+
+const datosBase = computed(() =>
+  rawReadings.value !== undefined && devices.value !== undefined
+    ? { readings: rawReadings.value, devices: devices.value }
+    : null
+);
 
 const { data: consumption, isLoading: loadingConsumption, isError: errorConsumption } = useQuery({
   queryKey: computed(() => ["consumption", user.value?.id]),
-  queryFn: () => getDeviceConsumption(user.value.id),
-  enabled,
+  queryFn: () => getDeviceConsumption(user.value.id, datosBase.value),
+  enabled: computed(() => Boolean(user.value) && datosBase.value !== null),
 });
 
-const { data: comparison, isLoading: loadingComparison, isError: errorComparison } = useQuery({
-  queryKey: computed(() => ["comparison", user.value?.id, days.value]),
-  queryFn: () => getPeriodComparison(user.value.id, days.value),
-  enabled,
+const readings = computed(() => aggregateByDay(rawReadings.value ?? [], days.value));
+
+// Comparacion con el periodo anterior, calculada sobre las mismas lecturas.
+const comparison = computed(() => {
+  const diario = aggregateByDay(rawReadings.value ?? [], days.value * 2);
+  const corte = Date.now() - days.value * 86_400_000;
+  let actualKwh = 0, anteriorKwh = 0, actualCoste = 0, anteriorCoste = 0;
+  for (const r of diario) {
+    const t = new Date(r.date).getTime();
+    if (Number.isNaN(t)) continue;
+    if (t >= corte) { actualKwh += r.kwh; actualCoste += r.cost; }
+    else { anteriorKwh += r.kwh; anteriorCoste += r.cost; }
+  }
+  const deltaPct = anteriorKwh > 0 ? ((actualKwh - anteriorKwh) / anteriorKwh) * 100 : 0;
+  return {
+    currentKwh: +actualKwh.toFixed(2),
+    previousKwh: +anteriorKwh.toFixed(2),
+    currentCost: +actualCoste.toFixed(2),
+    previousCost: +anteriorCoste.toFixed(2),
+    deltaPct: +deltaPct.toFixed(1),
+  };
 });
+const loadingComparison = loadingReadings;
+const errorComparison = errorReadings;
 
-const totalKwh = computed(() => readings.value?.reduce((s, r) => s + r.kwh, 0) ?? 0);
-const totalCost = computed(() => readings.value?.reduce((s, r) => s + r.cost, 0) ?? 0);
-
-// Umbrales por dispositivo que definio el usuario (RF-ANL-05).
-const goals = computed(() => getGoals(user.value?.id ?? "anon"));
+const totalKwh = computed(() => readings.value.reduce((s, r) => s + r.kwh, 0));
+const totalCost = computed(() => readings.value.reduce((s, r) => s + r.cost, 0));
 
 const metricOptions = computed(() => [
   ["kwh", "kWh"],
@@ -83,6 +120,9 @@ const trendMessage = computed(() => {
   }
   return `${t("Bajaste", "Down")} ${abs}% ${t("vs. el periodo anterior. ¡Bien!", "vs. the previous period. Nice!")}`;
 });
+
+// Las metas las edita GoalsCard; aqui solo se leen para marcar quien se pasa.
+const goals = computed(() => getGoals(user.value?.id ?? "anon"));
 
 function goalFor(deviceId) {
   return goals.value.perDevice[deviceId] ?? 0;
@@ -230,6 +270,13 @@ function isOverGoal(d) {
     <PeriodSummaryCard
       v-if="user"
       :user-id="user.id"
+      :readings="rawReadings ?? null"
+    />
+
+    <GoalsCard
+      v-if="user"
+      :user-id="user.id"
+      :consumption="consumption ?? []"
     />
 
     <!-- Detalle por dispositivo -->
