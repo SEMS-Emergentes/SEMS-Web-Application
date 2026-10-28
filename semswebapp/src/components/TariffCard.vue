@@ -122,7 +122,12 @@ function onEstimar() {
               ? t("Ahora en hora punta", "Peak hours now")
               : t("Fuera de punta", "Off-peak now") }}
           </UiBadge>
-          <span class="text-xs text-slate-400">{{ tarifa.peakHours }}</span>
+          <span class="text-xs text-slate-400">
+            {{ tarifa.peakHours }}
+            {{ tarifa.peakEveryDay
+              ? t("todos los días", "every day")
+              : t("de lunes a sábado", "Monday to Saturday") }}
+          </span>
         </div>
 
         <dl class="mt-4 grid gap-3 sm:grid-cols-2">
