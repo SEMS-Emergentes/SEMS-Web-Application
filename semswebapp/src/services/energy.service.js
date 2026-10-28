@@ -7,14 +7,9 @@ import {
   demoSiteComparison,
 } from "@/lib/demo";
 import { listDevices } from "./devices.service";
-import { getTariff, DEFAULT_TARIFF } from "@/lib/tariff";
-import { getEstablishmentProfile } from "@/lib/establishmentStore";
 
 // Modulo de energia del backend. Sus recursos responden en snake_case.
 const BASE = "/api/v1";
-
-// Precio referencial S/ por kWh si el backend no responde.
-const FALLBACK_PRICE = DEFAULT_TARIFF;
 
 /**
  * Lecturas crudas del usuario, tal como las devuelve el backend.
@@ -30,34 +25,13 @@ export async function getReadingsRaw(userId, limit = 200) {
 }
 
 /**
- * Precio actual por kWh.
- *
- * Si el jefe de casa configuro una tarifa, esa manda; si no, se usa la del
- * backend y, en ultimo caso, el valor de respaldo.
- *
- * @returns {Promise<number>}
- */
-export async function getPricePerKwh() {
-  const custom = getTariff();
-  if (custom) return custom;
-  if (DEMO_MODE) return FALLBACK_PRICE;
-  try {
-    const { data } = await api.get(`${BASE}/energy/pricing/current`);
-    return data?.price_per_kwh || FALLBACK_PRICE;
-  } catch {
-    return FALLBACK_PRICE;
-  }
-}
-
-/**
  * Lecturas agregadas por dia dentro de la ventana pedida.
  * @returns {Promise<import("../types").EnergyReading[]>}
  */
 export async function getReadings(userId, days = 14, cargado = {}) {
   if (DEMO_MODE) { await delay(); return demoReadings(days); }
   const readings = cargado.readings ?? (await getReadingsRaw(userId));
-  const price = cargado.price ?? (await getPricePerKwh());
-  return aggregateByDay(readings, price, days);
+  return aggregateByDay(readings, days);
 }
 
 /**
@@ -69,7 +43,7 @@ export async function getReadings(userId, days = 14, cargado = {}) {
  *
  * @returns {import("../types").EnergyReading[]}
  */
-export function aggregateByDay(readings, price, days = 14) {
+export function aggregateByDay(readings, days = 14) {
   const cutoff = Date.now() - days * 86_400_000;
   const byDay = new Map();
   for (const r of readings) {
@@ -78,7 +52,10 @@ export function aggregateByDay(readings, price, days = 14) {
     const day = r.timestamp.slice(0, 10);
     const acc = byDay.get(day) ?? { kwh: 0, cost: 0 };
     acc.kwh += r.energy_kwh ?? 0;
-    acc.cost += r.estimated_cost ?? (r.energy_kwh ?? 0) * price;
+    // El coste viene ya calculado con la tarifa del local y la franja en que
+    // se midio. Antes se multiplicaba aqui por un precio plano, que para un
+    // suministro comercial no existe: la energia de hora punta vale mas.
+    acc.cost += r.estimated_cost ?? 0;
     byDay.set(day, acc);
   }
   return [...byDay.entries()]
@@ -163,11 +140,9 @@ export async function getDeviceConsumption(userId, cargado = {}) {
   }
 
   // 2) Estimacion: agrupa las lecturas por dispositivo.
-  const [readings, price] = await Promise.all([
-    cargado.readings ?? getReadingsRaw(userId),
-    cargado.price ?? getPricePerKwh(),
-  ]);
+  const readings = cargado.readings ?? (await getReadingsRaw(userId));
   const kwhByDevice = new Map();
+  const costByDevice = new Map();
   for (const r of readings) {
     // Una lectura de medidor sin equipo es consumo del local y no entra en el
     // desglose por equipo. Antes entraba con identificador nulo y reventaba el
@@ -176,6 +151,7 @@ export async function getDeviceConsumption(userId, cargado = {}) {
     if (!r.device_id) continue;
     if (!exists(r.device_id)) continue; // lecturas de dispositivos eliminados
     kwhByDevice.set(r.device_id, (kwhByDevice.get(r.device_id) ?? 0) + (r.energy_kwh ?? 0));
+    costByDevice.set(r.device_id, (costByDevice.get(r.device_id) ?? 0) + (r.estimated_cost ?? 0));
   }
   const total = [...kwhByDevice.values()].reduce((s, k) => s + k, 0) || 1;
   return [...kwhByDevice.entries()]
@@ -184,7 +160,7 @@ export async function getDeviceConsumption(userId, cargado = {}) {
       deviceId,
       deviceName: nameById.get(deviceId) ?? `Dispositivo ${deviceId.slice(0, 6)}`,
       kwh: +kwh.toFixed(3),
-      cost: +(kwh * price).toFixed(2),
+      cost: +(costByDevice.get(deviceId) ?? 0).toFixed(2),
       pct: Math.round((kwh / total) * 100),
     }));
 }
@@ -308,8 +284,6 @@ export async function linkMeter(userId, serial, opts = {}) {
       lastReadingKwh: 0,
     };
   }
-  // Ubicacion: la del perfil del establecimiento si el usuario la configuro.
-  const location = getEstablishmentProfile(userId).location || "Establecimiento";
   const { data } = await api.post(`${BASE}/energy-meters`, {
     user_id: userId,
     site_id: siteId,
@@ -317,7 +291,6 @@ export async function linkMeter(userId, serial, opts = {}) {
     meter_serial: serial,
     model,
     brand: "EOS",
-    location,
     status: "active",
   });
   return mapMeter(data);
@@ -394,7 +367,8 @@ export async function getCommercialTariff(category) {
       excessPowerPerKwMonth: 87.6,
       fixedCharge: 12.8,
       igv: 0.18,
-      peakHours: "18:00-23:00 lun-sab",
+      peakHours: "18:00-23:00",
+      peakEveryDay: true,
       inPeakNow: new Date().getHours() >= 18 && new Date().getHours() < 23,
     };
   }
@@ -410,6 +384,9 @@ export async function getCommercialTariff(category) {
     fixedCharge: data.fixed_charge ?? 0,
     igv: data.igv ?? 0,
     peakHours: data.peak_hours,
+    // Que dias cuentan como punta depende del suministro: la exclusion de
+    // domingos no es automatica, la concede la distribuidora a quien la pide.
+    peakEveryDay: data.peak_every_day !== false,
     inPeakNow: Boolean(data.in_peak_now),
   };
 }
@@ -509,8 +486,8 @@ function isoWeekKey(d) {
  * Agrupa las lecturas diarias en resumenes por semana y por mes.
  * @returns {Promise<ConsumptionSummary>}
  */
-export async function getConsumptionSummary(userId, days = 90) {
-  const readings = await getReadings(userId, days); // [{date, kwh, cost}] por dia
+export async function getConsumptionSummary(userId, days = 90, cargado = {}) {
+  const readings = await getReadings(userId, days, cargado); // [{date, kwh, cost}] por dia
   const weekMap = new Map();
   const monthMap = new Map();
 

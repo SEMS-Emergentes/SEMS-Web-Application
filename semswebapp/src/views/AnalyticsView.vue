@@ -12,6 +12,7 @@ import SeverityBadge from "@/components/ui/SeverityBadge.vue";
 import UiEmptyState from "@/components/ui/UiEmptyState.vue";
 import UpgradeGate from "@/components/UpgradeGate.vue";
 import SiteComparisonCard from "@/components/SiteComparisonCard.vue";
+import { listDevices } from "@/services/devices.service";
 import {
   getRecommendations,
   applyRecommendation,
@@ -36,6 +37,19 @@ const allowed = computed(() => hasTier(tier.value, "business"));
 // `enabled` incluye el plan: sin acceso no tiene sentido pedir los datos.
 const enabled = computed(() => Boolean(user.value) && allowed.value);
 
+// Los equipos se piden una vez: las anomalias y el ranking solo los usan para
+// poner nombre donde el backend manda un identificador.
+const { data: devices } = useQuery({
+  queryKey: computed(() => ["devices", user.value?.id]),
+  queryFn: () => listDevices(user.value.id),
+  enabled,
+});
+
+const conEquipos = computed(() =>
+  devices.value === undefined ? null : { devices: devices.value }
+);
+const listoConEquipos = computed(() => enabled.value && conEquipos.value !== null);
+
 const { data: recs, isLoading: loadingRecs, isError: errorRecs } = useQuery({
   queryKey: computed(() => ["recommendations", user.value?.id]),
   queryFn: () => getRecommendations(user.value.id),
@@ -44,8 +58,8 @@ const { data: recs, isLoading: loadingRecs, isError: errorRecs } = useQuery({
 
 const { data: anomalies, isLoading: loadingAnomalies, isError: errorAnomalies } = useQuery({
   queryKey: computed(() => ["anomalies", user.value?.id]),
-  queryFn: () => getAnomalies(user.value.id),
-  enabled,
+  queryFn: () => getAnomalies(user.value.id, conEquipos.value),
+  enabled: listoConEquipos,
 });
 
 const { data: prediction } = useQuery({
@@ -56,8 +70,8 @@ const { data: prediction } = useQuery({
 
 const { data: rankings, isLoading: loadingRankings, isError: errorRankings } = useQuery({
   queryKey: computed(() => ["rankings", user.value?.id]),
-  queryFn: () => getRankings(user.value.id),
-  enabled,
+  queryFn: () => getRankings(user.value.id, conEquipos.value),
+  enabled: listoConEquipos,
 });
 
 const apply = useMutation({

@@ -38,27 +38,34 @@ const thresholdOpen = ref(false);
 
 const enabled = computed(() => Boolean(user.value));
 
+// Los equipos se piden una vez y se pasan a las alertas y a los umbrales, que
+// solo los usan para poner nombre. Antes cada uno los pedia por su cuenta.
+const { data: devices } = useQuery({
+  queryKey: computed(() => ["devices", user.value?.id]),
+  queryFn: () => listDevices(user.value.id),
+  enabled,
+});
+
+const conEquipos = computed(() =>
+  devices.value === undefined ? null : { devices: devices.value }
+);
+const listoConEquipos = computed(() => Boolean(user.value) && conEquipos.value !== null);
+
 const { data: alerts, isLoading: loadingAlerts, isError: errorAlerts } = useQuery({
   queryKey: computed(() => ["alerts", user.value?.id]),
-  queryFn: () => getAlerts(user.value.id),
-  enabled,
+  queryFn: () => getAlerts(user.value.id, conEquipos.value),
+  enabled: listoConEquipos,
 });
 
 const { data: thresholds, isLoading: loadingThresholds, isError: errorThresholds } = useQuery({
   queryKey: computed(() => ["thresholds", user.value?.id]),
-  queryFn: () => getThresholds(user.value.id),
-  enabled,
+  queryFn: () => getThresholds(user.value.id, conEquipos.value),
+  enabled: listoConEquipos,
 });
 
 const { data: prefs, isLoading: loadingPrefs, isError: errorPrefs } = useQuery({
   queryKey: computed(() => ["preferences", user.value?.id]),
   queryFn: () => getNotificationPreferences(user.value.id),
-  enabled,
-});
-
-const { data: devices } = useQuery({
-  queryKey: computed(() => ["devices", user.value?.id]),
-  queryFn: () => listDevices(user.value.id),
   enabled,
 });
 

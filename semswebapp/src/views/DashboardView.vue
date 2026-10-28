@@ -18,7 +18,6 @@ import {
   aggregateByDay,
   getDeviceConsumption,
   getMeters,
-  getPricePerKwh,
   getReadingsRaw,
 } from "@/services/energy.service";
 import { listDevices } from "@/services/devices.service";
@@ -57,12 +56,6 @@ const { data: rawReadings, isLoading: loadingReadings, isError: errorReadings } 
   enabled,
 });
 
-const { data: price } = useQuery({
-  queryKey: ["price-per-kwh"],
-  queryFn: getPricePerKwh,
-  enabled,
-});
-
 const { data: devices, isLoading: loadingDevices, isError: errorDevices } = useQuery({
   queryKey: computed(() => ["devices", user.value?.id]),
   queryFn: () => listDevices(user.value.id),
@@ -78,8 +71,8 @@ const { data: unreadAlerts } = useQuery({
 // El desglose por equipo espera a los tres anteriores y se los pasa, asi que
 // solo consulta su propio endpoint.
 const datosBase = computed(() =>
-  rawReadings.value !== undefined && devices.value !== undefined && price.value !== undefined
-    ? { readings: rawReadings.value, devices: devices.value, price: price.value }
+  rawReadings.value !== undefined && devices.value !== undefined
+    ? { readings: rawReadings.value, devices: devices.value }
     : null
 );
 
@@ -90,9 +83,7 @@ const { data: consumption, isLoading: loadingConsumption, isError: errorConsumpt
 });
 
 // Lecturas por dia: la ventana larga para el resumen, recortada para el grafico.
-const readings = computed(() =>
-  aggregateByDay(rawReadings.value ?? [], price.value ?? 0, SUMMARY_DAYS)
-);
+const readings = computed(() => aggregateByDay(rawReadings.value ?? [], SUMMARY_DAYS));
 const chartReadings = computed(() => readings.value.slice(-CHART_DAYS));
 
 const summary = computed(() =>
