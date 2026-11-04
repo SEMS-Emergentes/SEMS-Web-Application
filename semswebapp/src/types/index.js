@@ -141,6 +141,24 @@
  * @property {number} lastReadingKwh
  */
 
+/**
+ * Una lectura suelta de un medidor, tal como la entrega el backend.
+ *
+ * @typedef {object} MeterReading
+ * @property {string} readingId
+ * @property {string} meterId
+ * @property {string | null} deviceId null en la lectura de un medidor que mide todo el local.
+ * @property {number} powerWatts  potencia instantanea medida
+ * @property {number} voltage
+ * @property {number} current
+ * @property {number} frequency
+ * @property {number} energyKwh  energia del intervalo de la lectura
+ * @property {number | null} estimatedCost null si el local no tiene tarifa reconocida.
+ * @property {string} timestamp  ISO 8601
+ * @property {string | null} readingType
+ * @property {string | null} phase
+ */
+
 // ------------------------------------------------------------------ analitica
 
 /**
