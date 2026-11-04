@@ -5,6 +5,7 @@ import {
   demoMeters,
   demoZoneConsumption,
   demoSiteComparison,
+  demoLatestReading,
 } from "@/lib/demo";
 import { listDevices } from "./devices.service";
 
@@ -239,6 +240,50 @@ export async function getSiteComparison(organizationId, days = 30) {
       peakDemandKw: s.peak_demand_kw ?? 0,
     })),
   };
+}
+
+/** @returns {import("../types").MeterReading} */
+function mapReading(r) {
+  return {
+    readingId: r.id,
+    meterId: r.meter_id,
+    deviceId: r.device_id ?? null,
+    powerWatts: r.power_watts ?? 0,
+    voltage: r.voltage ?? 0,
+    current: r.current ?? 0,
+    frequency: r.frequency ?? 0,
+    energyKwh: r.energy_kwh ?? 0,
+    // Viaja ya valorizado con la tarifa del local y la franja en que se midio.
+    estimatedCost: r.estimated_cost == null ? null : Number(r.estimated_cost),
+    timestamp: r.timestamp,
+    readingType: r.reading_type ?? null,
+    phase: r.phase ?? null,
+  };
+}
+
+/**
+ * Ultima lectura registrada por un medidor (US24).
+ *
+ * Devuelve null cuando no hay lectura que mostrar. El backend responde el mismo
+ * 404 para un medidor sin lecturas y para uno que no existe, asi que esa
+ * diferencia no se puede sacar de aqui: quien llama la resuelve mirando si el
+ * medidor esta entre los dados de alta. Cualquier otro fallo se propaga, porque
+ * un 500 o una caida de red no son "no hay lecturas" y no deben leerse igual.
+ *
+ * @returns {Promise<import("../types").MeterReading | null>}
+ */
+export async function getLatestMeterReading(meterId) {
+  if (DEMO_MODE) {
+    await delay(250);
+    return demoLatestReading();
+  }
+  try {
+    const { data } = await api.get(`${BASE}/energy-readings/meter/${meterId}/latest`);
+    return mapReading(data);
+  } catch (e) {
+    if (e?.response?.status === 404) return null;
+    throw e;
+  }
 }
 
 /** @returns {import("../types").EnergyMeter} */

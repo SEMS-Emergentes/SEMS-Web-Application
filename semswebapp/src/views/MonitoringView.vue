@@ -12,6 +12,7 @@ import UiEmptyState from "@/components/ui/UiEmptyState.vue";
 import UiSegmented from "@/components/ui/UiSegmented.vue";
 import ConsumptionChart from "@/components/charts/ConsumptionChart.vue";
 import MetersManager from "@/components/MetersManager.vue";
+import CurrentUsageCard from "@/components/CurrentUsageCard.vue";
 import ZoneConsumptionCard from "@/components/ZoneConsumptionCard.vue";
 import PeriodSummaryCard from "@/components/PeriodSummaryCard.vue";
 import {
@@ -145,6 +146,13 @@ function isOverGoal(d) {
     </div>
 
     <MetersManager
+      v-if="user"
+      :user-id="user.id"
+    />
+
+    <!-- Va pegada a los medidores y antes de los agregados: es la unica lectura
+         viva de la pantalla y se lee junto al medidor del que sale. -->
+    <CurrentUsageCard
       v-if="user"
       :user-id="user.id"
     />

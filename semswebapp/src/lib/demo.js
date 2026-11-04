@@ -46,8 +46,35 @@ export const demoConsumption = [
 ];
 
 export const demoMeters = [
-  { meterId: "m-01", name: "Medidor principal EOS", active: true, lastReadingKwh: 1842.6 },
+  // Con local asignado: la lectura de potencia solo se interpreta contra la
+  // potencia contratada de ese suministro.
+  { meterId: "m-01", name: "Medidor principal EOS", serial: "EOS-001842", siteId: "site-demo-01", zoneId: null, active: true, lastReadingKwh: 1842.6 },
 ];
+
+/**
+ * Ultima lectura del medidor principal (US24).
+ *
+ * Se genera con la hora actual, no fija: una lectura "actual" con marca de
+ * tiempo de hace meses se lee como un medidor caido, que es justo lo contrario
+ * de lo que la pantalla quiere mostrar.
+ */
+export function demoLatestReading() {
+  const potenciaW = 61_400 + Math.round(Math.random() * 6_000);
+  return {
+    readingId: "read-demo-01",
+    meterId: "m-01",
+    deviceId: null,
+    powerWatts: potenciaW,
+    voltage: 219.4,
+    current: 93.2,
+    frequency: 59.9,
+    energyKwh: 4.1,
+    estimatedCost: 1.15,
+    timestamp: new Date(Date.now() - 2 * 60_000).toISOString(),
+    readingType: "INTERVAL",
+    phase: "THREE_PHASE",
+  };
+}
 
 export const demoRecommendations = [
   { id: "r-01", title: "Sube el aire a 24°C", detail: "Mantener el aire acondicionado en 24°C en vez de 21°C puede reducir su consumo hasta un 18%.", estimatedSaving: 14.2, applied: false },
