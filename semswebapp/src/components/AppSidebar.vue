@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { useQuery } from "@tanstack/vue-query";
 import { storeToRefs } from "pinia";
 import {
-  LayoutDashboard, Cpu, Activity, LineChart, Bell, FileText, Store, Building2, CreditCard, Zap, X, Lock,
+  LayoutDashboard, Cpu, Activity, LineChart, Bell, FileText, Building2, CreditCard, Zap, X, Lock,
 } from "lucide-vue-next";
 import { getMySubscription } from "@/services/subscriptions.service";
 import { useAuthStore } from "@/stores/auth";
@@ -27,12 +27,11 @@ const nav = computed(() => [
   { to: "/", label: t("Resumen", "Overview"), icon: LayoutDashboard, exact: true },
   { to: "/devices", label: t("Dispositivos", "Devices"), icon: Cpu },
   { to: "/monitoring", label: t("Monitoreo", "Monitoring"), icon: Activity },
-  { to: "/analytics", label: t("Analítica", "Analytics"), icon: LineChart, min: "plus" },
+  { to: "/analytics", label: t("Analítica", "Analytics"), icon: LineChart, min: "business" },
   { to: "/alerts", label: t("Alertas", "Alerts"), icon: Bell },
-  { to: "/reports", label: t("Reportes", "Reports"), icon: FileText, min: "plus" },
+  { to: "/reports", label: t("Reportes", "Reports"), icon: FileText, min: "business" },
   { to: "/subscription", label: t("Suscripción", "Subscription"), icon: CreditCard },
   { to: "/sites", label: t("Locales", "Sites"), icon: Building2 },
-  { to: "/establishment", label: t("Establecimiento", "Establishment"), icon: Store },
 ]);
 
 // Comparte clave de cache con la pagina de Suscripcion: no genera peticion extra.

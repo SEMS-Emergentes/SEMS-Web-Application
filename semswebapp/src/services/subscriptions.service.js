@@ -5,6 +5,7 @@ import {
   demoPaymentMethods,
   demoInvoices,
 } from "@/lib/demoExtra";
+import { tierFromName } from "@/lib/plan";
 
 // Suscripciones y pagos. Ambos modulos exponen sus rutas bajo /api/v1.
 const BASE = "/api/v1";
@@ -43,7 +44,10 @@ function mapPlan(p) {
     price: p.Price ?? 0,
     period: periodLabel(p.BillingPeriod),
     features: planFeatures(p),
-    recommended: (p.Name ?? "").toLowerCase().includes("pro"),
+    // El plan intermedio es el que se destaca. Buscaba "pro", que con el
+    // catalogo actual (Starter, Business, Enterprise) no es ninguno: la
+    // pagina de planes se quedaba sin recomendacion.
+    recommended: tierFromName(p.Name) === "business",
   };
 }
 
@@ -64,14 +68,35 @@ function normSubStatus(s) {
   }
 }
 
+// El catalogo de planes es el mismo para todos y cambia muy de vez en cuando,
+// pero lo necesitan la pagina de suscripcion, el menu lateral y cada pantalla
+// que comprueba el nivel del plan. Se recuerda un minuto para que una carga de
+// pantalla no lo pida tres veces; no es cache de datos del usuario, asi que no
+// hay nada que pueda quedarse obsoleto para nadie.
+const VIGENCIA_PLANES = 60_000;
+let peticionDePlanes = null;
+let planesPedidosEn = 0;
+
 /** @returns {Promise<import("../types/billing").SubscriptionPlan[]>} */
 export async function getPlans() {
   if (DEMO_MODE) {
     await delay();
     return demoPlans;
   }
-  const { data } = await api.get(`${BASE}/subscription-plans`);
-  return (data ?? []).map(mapPlan);
+  // Se recuerda la PROMESA y no el resultado: la pantalla de suscripcion y la
+  // consulta del plan contratado arrancan a la vez, y recordando solo el
+  // resultado las dos salian antes de que ninguna hubiera respondido.
+  if (!peticionDePlanes || Date.now() - planesPedidosEn >= VIGENCIA_PLANES) {
+    planesPedidosEn = Date.now();
+    peticionDePlanes = api.get(`${BASE}/subscription-plans`)
+      .then(({ data }) => (data ?? []).map(mapPlan))
+      .catch((fallo) => {
+        // Un fallo no se cachea: la siguiente llamada vuelve a intentarlo.
+        peticionDePlanes = null;
+        throw fallo;
+      });
+  }
+  return peticionDePlanes;
 }
 
 /**
@@ -83,12 +108,14 @@ export async function getMySubscription(userId) {
     await delay(300);
     return demoSubscription;
   }
+  // El catalogo solo sirve para poner nombre y precio al plan contratado, y
+  // pasa por getPlans para no volver a pedirlo si ya se pidio hace nada.
   const [subsRes, plansRes] = await Promise.allSettled([
     api.get(`${BASE}/subscriptions/users/${userId}`),
-    api.get(`${BASE}/subscription-plans`),
+    getPlans(),
   ]);
   const subs = subsRes.status === "fulfilled" ? subsRes.value.data ?? [] : [];
-  const plans = plansRes.status === "fulfilled" ? (plansRes.value.data ?? []).map(mapPlan) : [];
+  const plans = plansRes.status === "fulfilled" ? plansRes.value : [];
   if (subs.length === 0) return null;
 
   // Preferimos una activa; si no, la primera.

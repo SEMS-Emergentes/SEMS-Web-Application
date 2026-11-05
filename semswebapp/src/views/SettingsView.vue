@@ -25,11 +25,13 @@ const { t } = langStore;
 // primero de los dos segmentos objetivo del proyecto.
 const DEFAULT_SEGMENT = "RETAIL_CHAIN";
 
-// Datos editables del perfil. Se guardan en el navegador via updateProfile:
-// el modulo de identidad no almacena el nombre para mostrar.
+// Datos editables del perfil. updateProfile los guarda en el backend, asi que
+// el cambio se ve tambien al entrar desde otro equipo.
 const fullName = ref(user.value?.fullName ?? "");
 const segment = ref(user.value?.segment ?? DEFAULT_SEGMENT);
 const saved = ref(false);
+const saving = ref(false);
+const error = ref("");
 
 const dirty = computed(
   () =>
@@ -38,13 +40,26 @@ const dirty = computed(
 );
 
 let savedTimer = null;
-function onSave() {
+async function onSave() {
   const name = fullName.value.trim();
   if (!name) return;
-  authStore.updateProfile({ fullName: name, segment: segment.value });
-  saved.value = true;
-  clearTimeout(savedTimer);
-  savedTimer = setTimeout(() => (saved.value = false), 2000);
+  saving.value = true;
+  error.value = "";
+  try {
+    await authStore.updateProfile({ fullName: name, segment: segment.value });
+    saved.value = true;
+    clearTimeout(savedTimer);
+    savedTimer = setTimeout(() => (saved.value = false), 2000);
+  } catch {
+    // Antes el guardado no podia fallar porque no salia del navegador. Ahora
+    // si, y callarlo dejaria al usuario creyendo que guardo.
+    error.value = t(
+      "No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.",
+      "Could not save. Check your connection and try again."
+    );
+  } finally {
+    saving.value = false;
+  }
 }
 
 const roleLabel = computed(
@@ -136,9 +151,10 @@ const segments = computed(() => [
           <div class="flex items-center gap-3 pt-1">
             <UiButton
               type="submit"
-              :disabled="!dirty"
+              :disabled="!dirty || saving"
             >
-              <Save class="h-4 w-4" /> {{ t("Guardar cambios", "Save changes") }}
+              <Save class="h-4 w-4" />
+              {{ saving ? t("Guardando...", "Saving...") : t("Guardar cambios", "Save changes") }}
             </UiButton>
             <span
               v-if="saved"
@@ -146,6 +162,10 @@ const segments = computed(() => [
             >
               <Check class="h-4 w-4" /> {{ t("Guardado", "Saved") }}
             </span>
+            <span
+              v-else-if="error"
+              class="text-sm font-medium text-rose-600 dark:text-rose-400"
+            >{{ error }}</span>
           </div>
         </form>
       </UiCard>

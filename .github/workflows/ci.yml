@@ -1,0 +1,44 @@
+# Revisa el linter y la compilacion de la aplicacion web en cada cambio.
+#
+# El proyecto vive en semswebapp/, asi que todos los pasos de node corren alli.
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: semswebapp
+
+jobs:
+  build:
+    name: Lint and build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: semswebapp/package-lock.json
+
+      # `npm ci` y no `npm install`: instala exactamente lo del lockfile y falla
+      # si no coincide con package.json, que es lo que se quiere en CI.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build

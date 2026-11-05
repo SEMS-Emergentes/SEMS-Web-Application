@@ -46,8 +46,35 @@ export const demoConsumption = [
 ];
 
 export const demoMeters = [
-  { meterId: "m-01", name: "Medidor principal EOS", active: true, lastReadingKwh: 1842.6 },
+  // Con local asignado: la lectura de potencia solo se interpreta contra la
+  // potencia contratada de ese suministro.
+  { meterId: "m-01", name: "Medidor principal EOS", serial: "EOS-001842", siteId: "site-demo-01", zoneId: null, active: true, lastReadingKwh: 1842.6 },
 ];
+
+/**
+ * Ultima lectura del medidor principal (US24).
+ *
+ * Se genera con la hora actual, no fija: una lectura "actual" con marca de
+ * tiempo de hace meses se lee como un medidor caido, que es justo lo contrario
+ * de lo que la pantalla quiere mostrar.
+ */
+export function demoLatestReading() {
+  const potenciaW = 61_400 + Math.round(Math.random() * 6_000);
+  return {
+    readingId: "read-demo-01",
+    meterId: "m-01",
+    deviceId: null,
+    powerWatts: potenciaW,
+    voltage: 219.4,
+    current: 93.2,
+    frequency: 59.9,
+    energyKwh: 4.1,
+    estimatedCost: 1.15,
+    timestamp: new Date(Date.now() - 2 * 60_000).toISOString(),
+    readingType: "INTERVAL",
+    phase: "THREE_PHASE",
+  };
+}
 
 export const demoRecommendations = [
   { id: "r-01", title: "Sube el aire a 24°C", detail: "Mantener el aire acondicionado en 24°C en vez de 21°C puede reducir su consumo hasta un 18%.", estimatedSaving: 14.2, applied: false },
@@ -112,6 +139,32 @@ export const demoZones = [
   { zoneId: "zone-demo-02", siteId: "site-demo-01", name: "Cámaras de frío", zoneType: "COLD_STORAGE", operatesOffHours: true, status: "ACTIVE" },
   { zoneId: "zone-demo-03", siteId: "site-demo-02", name: "Almacén", zoneType: "WAREHOUSE", operatesOffHours: false, status: "ACTIVE" },
 ];
+
+// Reparto por zona del local de Miraflores (US26) y comparacion entre los dos
+// locales (US39). Los numeros cuadran con demoZones y demoSites.
+export const demoZoneConsumption = {
+  siteId: "site-demo-01",
+  siteName: "Miraflores",
+  days: 30,
+  totalKwh: 2480,
+  currency: "PEN",
+  zones: [
+    { zoneId: "zone-demo-02", zoneName: "Cámaras de frío", zoneType: "COLD_STORAGE", meterCount: 2, kwh: 1364, sharePercent: 55, estimatedEnergyCost: 505.2 },
+    { zoneId: "zone-demo-01", zoneName: "Sala de ventas", zoneType: "SALES_FLOOR", meterCount: 1, kwh: 868, sharePercent: 35, estimatedEnergyCost: 286.4 },
+  ],
+  unassigned: { zoneId: null, zoneName: null, zoneType: null, meterCount: 1, kwh: 248, sharePercent: 10, estimatedEnergyCost: 81.8 },
+};
+
+export const demoSiteComparison = {
+  organizationId: "org-demo-01",
+  days: 30,
+  totalKwh: 3720,
+  currency: "PEN",
+  sites: [
+    { siteId: "site-demo-01", siteCode: "LIM-001", siteName: "Miraflores", contractedPowerKw: 95, tariffCategory: "MT2", meterCount: 4, kwh: 2480, sharePercent: 66.7, estimatedEnergyCost: 873.4, kwhPerContractedKw: 26.1, peakDemandKw: 78.4 },
+    { siteId: "site-demo-02", siteCode: "LIM-002", siteName: "San Isidro", contractedPowerKw: 60, tariffCategory: "BT5B", meterCount: 2, kwh: 1240, sharePercent: 33.3, estimatedEnergyCost: 441.9, kwhPerContractedKw: 20.7, peakDemandKw: 41.2 },
+  ],
+};
 
 export const demoMembers = [
   { membershipId: "mem-01", userId: "u-01", email: "alexis@sems.pe", role: "ORG_ADMIN", siteId: null, status: "ACTIVE" },

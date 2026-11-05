@@ -141,6 +141,24 @@
  * @property {number} lastReadingKwh
  */
 
+/**
+ * Una lectura suelta de un medidor, tal como la entrega el backend.
+ *
+ * @typedef {object} MeterReading
+ * @property {string} readingId
+ * @property {string} meterId
+ * @property {string | null} deviceId null en la lectura de un medidor que mide todo el local.
+ * @property {number} powerWatts  potencia instantanea medida
+ * @property {number} voltage
+ * @property {number} current
+ * @property {number} frequency
+ * @property {number} energyKwh  energia del intervalo de la lectura
+ * @property {number | null} estimatedCost null si el local no tiene tarifa reconocida.
+ * @property {string} timestamp  ISO 8601
+ * @property {string | null} readingType
+ * @property {string | null} phase
+ */
+
 // ------------------------------------------------------------------ analitica
 
 /**
@@ -183,12 +201,58 @@
  *
  * @typedef {object} DashboardSummary
  * @property {number} currentMonthCost
- * @property {number} savingAmount
- * @property {number} savingPct
- * @property {number} projectedCost
+ * @property {number | null} savingAmount null cuando no hay periodo anterior con el que comparar.
+ * @property {number | null} savingPct null cuando no hay periodo anterior con el que comparar.
+ * @property {number | null} projectedCost null cuando todavia no hay lecturas.
  * @property {number} totalKwh
  * @property {number} activeDevices
  * @property {number} unreadAlerts
+ */
+
+/**
+ * @typedef {object} ZoneShare
+ * @property {string | null} zoneId null en el consumo de medidores sin zona asignada.
+ * @property {string | null} zoneName
+ * @property {string | null} zoneType
+ * @property {number} meterCount
+ * @property {number} kwh
+ * @property {number} sharePercent
+ * @property {number | null} estimatedEnergyCost null si el local no tiene tarifa reconocida.
+ */
+
+/**
+ * @typedef {object} ZoneConsumption
+ * @property {string} siteId
+ * @property {string} siteName
+ * @property {number} days
+ * @property {number} totalKwh
+ * @property {string} currency
+ * @property {ZoneShare[]} zones
+ * @property {ZoneShare} unassigned
+ */
+
+/**
+ * @typedef {object} SiteShare
+ * @property {string} siteId
+ * @property {string} siteCode
+ * @property {string} siteName
+ * @property {number | null} contractedPowerKw
+ * @property {string | null} tariffCategory
+ * @property {number} meterCount
+ * @property {number} kwh
+ * @property {number} sharePercent
+ * @property {number | null} estimatedEnergyCost
+ * @property {number | null} kwhPerContractedKw Consumo por kW contratado: lo comparable entre locales de distinto tamano.
+ * @property {number} peakDemandKw
+ */
+
+/**
+ * @typedef {object} SiteComparison
+ * @property {string} organizationId
+ * @property {number} days
+ * @property {number} totalKwh
+ * @property {string} currency
+ * @property {SiteShare[]} sites
  */
 
 export {};

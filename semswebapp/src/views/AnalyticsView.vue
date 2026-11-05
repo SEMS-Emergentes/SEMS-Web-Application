@@ -9,7 +9,10 @@ import UiButton from "@/components/ui/UiButton.vue";
 import UiLoading from "@/components/ui/UiLoading.vue";
 import UiErrorState from "@/components/ui/UiErrorState.vue";
 import SeverityBadge from "@/components/ui/SeverityBadge.vue";
+import UiEmptyState from "@/components/ui/UiEmptyState.vue";
 import UpgradeGate from "@/components/UpgradeGate.vue";
+import SiteComparisonCard from "@/components/SiteComparisonCard.vue";
+import { listDevices } from "@/services/devices.service";
 import {
   getRecommendations,
   applyRecommendation,
@@ -29,10 +32,23 @@ const { t } = useLangStore();
 const tier = usePlanTier();
 
 // La analitica avanzada es de plan Plus en adelante.
-const allowed = computed(() => hasTier(tier.value, "plus"));
+const allowed = computed(() => hasTier(tier.value, "business"));
 
 // `enabled` incluye el plan: sin acceso no tiene sentido pedir los datos.
 const enabled = computed(() => Boolean(user.value) && allowed.value);
+
+// Los equipos se piden una vez: las anomalias y el ranking solo los usan para
+// poner nombre donde el backend manda un identificador.
+const { data: devices } = useQuery({
+  queryKey: computed(() => ["devices", user.value?.id]),
+  queryFn: () => listDevices(user.value.id),
+  enabled,
+});
+
+const conEquipos = computed(() =>
+  devices.value === undefined ? null : { devices: devices.value }
+);
+const listoConEquipos = computed(() => enabled.value && conEquipos.value !== null);
 
 const { data: recs, isLoading: loadingRecs, isError: errorRecs } = useQuery({
   queryKey: computed(() => ["recommendations", user.value?.id]),
@@ -42,8 +58,8 @@ const { data: recs, isLoading: loadingRecs, isError: errorRecs } = useQuery({
 
 const { data: anomalies, isLoading: loadingAnomalies, isError: errorAnomalies } = useQuery({
   queryKey: computed(() => ["anomalies", user.value?.id]),
-  queryFn: () => getAnomalies(user.value.id),
-  enabled,
+  queryFn: () => getAnomalies(user.value.id, conEquipos.value),
+  enabled: listoConEquipos,
 });
 
 const { data: prediction } = useQuery({
@@ -54,8 +70,8 @@ const { data: prediction } = useQuery({
 
 const { data: rankings, isLoading: loadingRankings, isError: errorRankings } = useQuery({
   queryKey: computed(() => ["rankings", user.value?.id]),
-  queryFn: () => getRankings(user.value.id),
-  enabled,
+  queryFn: () => getRankings(user.value.id, conEquipos.value),
+  enabled: listoConEquipos,
 });
 
 const apply = useMutation({
@@ -86,7 +102,7 @@ function isApplying(id) {
 
     <UpgradeGate
       v-if="!allowed"
-      required="plus"
+      required="business"
       :title="t('Analítica avanzada', 'Advanced analytics')"
       :description="
         t(
@@ -111,6 +127,15 @@ function isApplying(id) {
               <p class="font-display text-3xl font-extrabold">
                 {{ prediction ? soles(prediction.projectedCost) : "—" }}
               </p>
+              <p
+                v-if="!prediction"
+                class="text-xs text-blue-100/80"
+              >
+                {{ t(
+                  "Hace falta consumo medido del periodo para proyectarla.",
+                  "Measured usage for the period is needed to forecast it.",
+                ) }}
+              </p>
             </div>
           </div>
           <div
@@ -131,7 +156,15 @@ function isApplying(id) {
         <UiCard>
           <UiCardTitle>{{ t("Recomendaciones", "Recommendations") }}</UiCardTitle>
           <UiLoading v-if="loadingRecs" />
-          <UiErrorState v-else-if="errorRecs || !recs" />
+          <UiErrorState v-else-if="errorRecs" />
+          <UiEmptyState
+            v-else-if="(recs?.length ?? 0) === 0"
+            :message="t('Aún no hay recomendaciones.', 'No recommendations yet.')"
+            :hint="t(
+              'Salen del consumo medido: con unos días de lecturas empiezan a aparecer.',
+              'They come from measured usage: a few days of readings and they start showing up.',
+            )"
+          />
           <ul
             v-else
             class="space-y-3"
@@ -186,12 +219,27 @@ function isApplying(id) {
           </ul>
         </UiCard>
 
+        <!-- Comparacion entre locales -->
+        <SiteComparisonCard
+          v-if="user"
+          :user-id="user.id"
+          class="lg:col-span-2"
+        />
+
         <div class="space-y-6">
           <!-- Ranking -->
           <UiCard>
             <UiCardTitle>{{ t("Ranking de consumo", "Usage ranking") }}</UiCardTitle>
             <UiLoading v-if="loadingRankings" />
-            <UiErrorState v-else-if="errorRankings || !rankings" />
+            <UiErrorState v-else-if="errorRankings" />
+            <UiEmptyState
+              v-else-if="(rankings?.length ?? 0) === 0"
+              :message="t('Sin equipos que ordenar.', 'No equipment to rank.')"
+              :hint="t(
+                'El ranking compara equipos; el reparto por zona está en Monitoreo.',
+                'The ranking compares equipment; the split by zone is under Monitoring.',
+              )"
+            />
             <ul
               v-else
               class="space-y-2"
@@ -230,7 +278,12 @@ function isApplying(id) {
           <UiCard>
             <UiCardTitle>{{ t("Anomalías detectadas", "Detected anomalies") }}</UiCardTitle>
             <UiLoading v-if="loadingAnomalies" />
-            <UiErrorState v-else-if="errorAnomalies || !anomalies" />
+            <UiErrorState v-else-if="errorAnomalies" />
+            <UiEmptyState
+              v-else-if="(anomalies?.length ?? 0) === 0"
+              :message="t('Ninguna anomalía detectada.', 'No anomalies detected.')"
+              :hint="t('Es la respuesta buena.', 'That is the good answer.')"
+            />
             <ul
               v-else
               class="space-y-3"
