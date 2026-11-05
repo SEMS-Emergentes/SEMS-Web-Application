@@ -1,7 +1,9 @@
 import axios from "axios";
 
-// Flag de modo demo: por defecto activo salvo que se ponga "false".
-export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE !== "false";
+// Flag de modo demo: hay que pedirlo. Encendido por defecto, un arranque sin
+// .env servia datos inventados con aspecto de reales y un login que aceptaba
+// cualquier credencial, sin mas aviso que una etiqueta pequena en la cabecera.
+export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
