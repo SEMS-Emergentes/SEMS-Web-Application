@@ -9,7 +9,7 @@ JavaScript y PrimeVue**, tal como exige el enunciado del curso:
 > diseño de Landing Page y Web Applications estará basado en **Material
 > Design**. Como biblioteca de componentes de UI se utilizará **PrimeVue**."
 
-Consume el backend en ASP.NET Core.
+Consume el backend en Spring Boot (Java 21).
 
 ---
 
