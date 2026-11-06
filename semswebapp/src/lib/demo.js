@@ -22,20 +22,60 @@ export const demoDevices = [
   { deviceId: "d-06", externalDeviceCode: "MW-006", userId: "u-001", siteId: "site-demo-01", deviceName: "Microondas", deviceType: "MICROWAVE", brand: "Panasonic", model: "NN", connectionProtocol: "WIFI", status: "ACTIVE", registeredAt: "2026-06-01T10:25:00Z", updatedAt: "2026-06-01T10:25:00Z" },
 ];
 
-export function demoReadings(days = 14) {
+// Tarifa MT2, la del local de demostracion: la energia de hora punta vale mas,
+// y la punta en Peru va de 18:00 a 23:00 todos los dias. El backend valora asi
+// cada lectura, y la demostracion no deberia contar otra cosa.
+const PUNTA_POR_KWH = 0.281;
+const FUERA_DE_PUNTA_POR_KWH = 0.2395;
+const PERU_UTC = 5;
+
+/** Horas locales a las que mide el medidor de demostracion. */
+const HORAS_DE_MEDICION = [8, 13, 19, 22];
+
+/**
+ * Lecturas crudas, con la misma forma que las devuelve el backend.
+ *
+ * <p>Antes la demostracion solo tenia el consumo ya agregado por dia, asi que
+ * las tres pantallas que parten de las lecturas crudas (Resumen, Monitoreo y
+ * Reportes) pedian el backend incluso en modo demo y se quedaban en su estado
+ * de error.
+ *
+ * <p>Son deterministas a proposito: con valores al azar, cada recarga movia
+ * los totales y el grafico, y una demostracion que cambia sola no se puede
+ * ensenar.
+ */
+export function demoRawReadings(days = 30) {
   const out = [];
-  const today = new Date();
+  const hoy = new Date();
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const kwh = +(6 + Math.sin(i / 2) * 2 + Math.random() * 2.5).toFixed(1);
-    out.push({
-      date: d.toISOString().slice(0, 10),
-      kwh,
-      cost: +(kwh * 0.78).toFixed(2),
+    const dia = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate() - i));
+    HORAS_DE_MEDICION.forEach((hora, franja) => {
+      const marca = new Date(dia);
+      marca.setUTCHours(hora + PERU_UTC);
+      const enPunta = hora >= 18 && hora < 23;
+      // Onda suave y repetible: el consumo sube al mediodia y en la tarde.
+      const kwh = +(3.4 + Math.sin(i / 3 + franja) * 0.9 + franja * 0.6).toFixed(2);
+      out.push({
+        id: `demo-r-${i}-${franja}`,
+        user_id: demoUser.id,
+        meter_id: "m-01",
+        // Una de cada cuatro no se atribuye a ningun equipo: el medidor mide
+        // el local, y eso es lo habitual, no una rareza.
+        device_id: franja === 3 ? null : demoDevices[franja].deviceId,
+        power_watts: Math.round(kwh * 950),
+        voltage: 220,
+        current: 9,
+        frequency: 60,
+        energy_kwh: kwh,
+        estimated_cost: +(kwh * (enPunta ? PUNTA_POR_KWH : FUERA_DE_PUNTA_POR_KWH)).toFixed(2),
+        timestamp: marca.toISOString(),
+        reading_type: "INTERVAL",
+        phase: null,
+      });
     });
   }
-  return out;
+  // Como las sirve el backend: de la mas reciente a la mas antigua.
+  return out.reverse();
 }
 
 export const demoConsumption = [
