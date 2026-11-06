@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "SEMS - Web App (dashboard) en Vue 3 + PrimeVue, consume el backend ASP.NET Core",
+  "description": "SEMS - Web App (dashboard) en Vue 3 + PrimeVue, consume el backend Spring Boot",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

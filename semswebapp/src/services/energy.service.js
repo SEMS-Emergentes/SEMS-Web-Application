@@ -286,6 +286,69 @@ export async function getLatestMeterReading(meterId) {
   }
 }
 
+/**
+ * Registra una lectura de consumo a mano.
+ *
+ * Es la unica entrada de consumo que tiene el producto: el backend no recibe
+ * nada por su cuenta de los medidores, asi que sin alguien que envie la
+ * lectura el grafico, el desglose por equipo y las alertas de demanda se
+ * quedan sin datos con los que trabajar.
+ *
+ * El backend valora la lectura con la tarifa del local y la franja horaria en
+ * que se midio, de modo que aqui no se calcula ningun precio.
+ *
+ * @returns {Promise<import("../types").EnergyReading>}
+ */
+export async function createReading(userId, input) {
+  const {
+    meterId,
+    deviceId = null,
+    energyKwh,
+    powerWatts = 0,
+    voltage = 0,
+    current = 0,
+    frequency = 0,
+    timestamp = null,
+    readingType = "MANUAL",
+    phase = null,
+  } = input;
+  const momento = timestamp || new Date().toISOString();
+  if (DEMO_MODE) {
+    await delay(300);
+    return {
+      readingId: crypto.randomUUID(),
+      meterId,
+      deviceId,
+      powerWatts,
+      voltage,
+      current,
+      frequency,
+      energyKwh,
+      estimatedCost: null,
+      timestamp: momento,
+      readingType,
+      phase,
+    };
+  }
+  const { data } = await api.post(`${BASE}/energy-readings`, {
+    user_id: userId,
+    meter_id: meterId,
+    // El equipo es opcional y lo declara quien envia la lectura: el medidor
+    // cuelga del local o de una zona, nunca de un equipo, asi que esta es la
+    // unica forma de atribuir consumo a uno.
+    device_id: deviceId || null,
+    power_watts: powerWatts,
+    voltage,
+    current,
+    frequency,
+    energy_kwh: energyKwh,
+    timestamp: momento,
+    reading_type: readingType,
+    phase,
+  });
+  return mapReading(data);
+}
+
 /** @returns {import("../types").EnergyMeter} */
 function mapMeter(m) {
   return {
