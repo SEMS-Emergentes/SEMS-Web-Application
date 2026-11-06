@@ -307,7 +307,10 @@ export async function createReading(userId, input) {
     powerWatts = 0,
     voltage = 0,
     current = 0,
-    frequency = 0,
+    // 60 Hz es la frecuencia de la red peruana. El backend exige una
+    // fisicamente posible (45-65 Hz) y rechaza la lectura si no lo es, asi que
+    // enviar cero hacia imposible registrar nada a mano.
+    frequency = 60,
     timestamp = null,
     readingType = "MANUAL",
     phase = null,
