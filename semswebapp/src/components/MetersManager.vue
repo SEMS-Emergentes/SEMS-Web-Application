@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch } from "vue";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
-import { Gauge, Plus, Trash2, LoaderCircle, QrCode } from "lucide-vue-next";
+import { Gauge, Plus, Trash2, LoaderCircle, QrCode, KeyRound } from "lucide-vue-next";
 import UiCard from "./ui/UiCard.vue";
 import UiCardTitle from "./ui/UiCardTitle.vue";
 import UiBadge from "./ui/UiBadge.vue";
@@ -9,6 +9,7 @@ import UiButton from "./ui/UiButton.vue";
 import UiLoading from "./ui/UiLoading.vue";
 import UiErrorState from "./ui/UiErrorState.vue";
 import QrScannerModal from "./QrScannerModal.vue";
+import MeterCredentialModal from "./MeterCredentialModal.vue";
 import {
   getMeters,
   linkMeter,
@@ -27,6 +28,10 @@ const qc = useQueryClient();
 const serial = ref("");
 const error = ref("");
 const scanOpen = ref(false);
+
+// Medidor cuya clave de ingesta se esta emitiendo, o nulo si el dialogo esta
+// cerrado.
+const credencialPara = ref(null);
 
 // El local es obligatorio al dar de alta: la tarifa, la potencia contratada y
 // el recibo son del suministro, no de la persona que registra el equipo. La
@@ -106,10 +111,14 @@ const link = useMutation({
     siteId: siteId.value,
     zoneId: zoneId.value || null,
   }),
-  onSuccess: () => {
+  onSuccess: (medidor) => {
     serial.value = "";
     error.value = "";
     qc.invalidateQueries({ queryKey: ["meters", props.userId] });
+    // Dar de alta el medidor no hace que mida: hasta que el aparato tenga su
+    // clave no puede enviar nada. Se ofrece aqui para que el alta y la puesta
+    // en marcha sean un solo paso, que es como lo vive quien instala.
+    credencialPara.value = medidor;
   },
   onError: () => {
     error.value = t(
@@ -191,6 +200,14 @@ function confirmUnlink(meterId) {
       @close="scanOpen = false"
     />
 
+    <MeterCredentialModal
+      v-if="credencialPara"
+      :meter-id="credencialPara.meterId"
+      :meter-name="credencialPara.name"
+      :issued-at="credencialPara.credentialIssuedAt"
+      @close="credencialPara = null"
+    />
+
     <UiLoading v-if="isLoading" />
     <UiErrorState v-else-if="isError" />
     <p
@@ -267,6 +284,16 @@ function confirmUnlink(meterId) {
             />
             {{ m.active ? t("En línea", "Online") : t("Desconectado", "Offline") }}
           </UiBadge>
+          <button
+            type="button"
+            :title="m.credentialIssuedAt
+              ? t('Rotar la clave de envío', 'Rotate the sending key')
+              : t('Emitir la clave de envío', 'Issue the sending key')"
+            class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10"
+            @click="credencialPara = m"
+          >
+            <KeyRound class="h-4 w-4" />
+          </button>
           <button
             type="button"
             :disabled="unlink.isPending.value"

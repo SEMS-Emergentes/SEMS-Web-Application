@@ -14,6 +14,7 @@ import UiToggle from "@/components/ui/UiToggle.vue";
 import SeverityBadge from "@/components/ui/SeverityBadge.vue";
 import ThresholdModal from "@/components/ThresholdModal.vue";
 import DemandRulesCard from "@/components/DemandRulesCard.vue";
+import InactivityRulesCard from "@/components/InactivityRulesCard.vue";
 import {
   getAlerts,
   updateAlertStatus,
@@ -230,6 +231,14 @@ function isResolving(id) {
         <!-- Aviso de demanda: va primero porque es el que evita el cargo mas
              caro del recibo, no el que mas alertas produce. -->
         <DemandRulesCard
+          v-if="user"
+          :user-id="user.id"
+        />
+
+        <!-- Equipos que dejaron de reportar: debajo de la demanda porque un
+             equipo callado cuesta menos que un pico, pero por encima de los
+             umbrales porque un equipo que no mide deja ciegos a esos umbrales. -->
+        <InactivityRulesCard
           v-if="user"
           :user-id="user.id"
         />
