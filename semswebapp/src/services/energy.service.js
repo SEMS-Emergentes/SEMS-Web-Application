@@ -1,6 +1,6 @@
 import { api, DEMO_MODE, delay } from "@/lib/api";
 import {
-  demoReadings,
+  demoRawReadings,
   demoConsumption,
   demoMeters,
   demoZoneConsumption,
@@ -21,6 +21,11 @@ const BASE = "/api/v1";
  * hacia cuatro identicas.
  */
 export async function getReadingsRaw(userId, limit = 200) {
+  // Sin esta rama, las tres pantallas que parten de las lecturas crudas
+  // (Resumen, Monitoreo y Reportes) llamaban al backend tambien en modo demo y
+  // se quedaban en su estado de error: el modo demo existe justamente para
+  // poder ensenarlas sin backend.
+  if (DEMO_MODE) { await delay(); return demoRawReadings().slice(0, limit); }
   const { data } = await api.get(`${BASE}/energy-readings/user/${userId}`, { params: { limit } });
   return data ?? [];
 }
@@ -30,7 +35,9 @@ export async function getReadingsRaw(userId, limit = 200) {
  * @returns {Promise<import("../types").EnergyReading[]>}
  */
 export async function getReadings(userId, days = 14, cargado = {}) {
-  if (DEMO_MODE) { await delay(); return demoReadings(days); }
+  // El agregado sale de las mismas lecturas crudas que ve el resto de la
+  // aplicacion, y no de una serie aparte: con dos fuentes distintas, el
+  // grafico y el desglose por equipo de una misma pantalla no cuadraban.
   const readings = cargado.readings ?? (await getReadingsRaw(userId));
   return aggregateByDay(readings, days);
 }
@@ -307,7 +314,10 @@ export async function createReading(userId, input) {
     powerWatts = 0,
     voltage = 0,
     current = 0,
-    frequency = 0,
+    // 60 Hz es la frecuencia de la red peruana. El backend exige una
+    // fisicamente posible (45-65 Hz) y rechaza la lectura si no lo es, asi que
+    // enviar cero hacia imposible registrar nada a mano.
+    frequency = 60,
     timestamp = null,
     readingType = "MANUAL",
     phase = null,
