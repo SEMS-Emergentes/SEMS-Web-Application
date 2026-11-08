@@ -9,7 +9,7 @@ JavaScript y PrimeVue**, tal como exige el enunciado del curso:
 > diseño de Landing Page y Web Applications estará basado en **Material
 > Design**. Como biblioteca de componentes de UI se utilizará **PrimeVue**."
 
-Consume el backend en ASP.NET Core.
+Consume el backend en Spring Boot (Java 21).
 
 ---
 
@@ -65,10 +65,10 @@ npm install
 npm run dev
 ```
 
-Queda en `http://localhost:5173`. **Arranca en modo demo**
-(`VITE_DEMO_MODE=true`): la interfaz completa funciona con datos de ejemplo, sin
-levantar el backend. Para consumir el backend real, pon `VITE_DEMO_MODE=false` y
-apunta `VITE_API_BASE_URL` a él.
+Queda en `http://localhost:5173`. **Arranca contra el backend real**: apunta
+`VITE_API_BASE_URL` a él. Para recorrer la interfaz sin levantarlo, pon
+`VITE_DEMO_MODE=true` y funciona con datos de ejemplo; cualquier otro valor, o
+ninguno, deja el modo demo apagado.
 
 ```bash
 npm run build     # compila a dist/
