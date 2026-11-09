@@ -1,4 +1,4 @@
-import { api, DEMO_MODE, delay, tokenStore } from "@/lib/api";
+import { api, DEMO_MODE, delay, refreshStore, tokenStore } from "@/lib/api";
 import { demoUser } from "@/lib/demo";
 
 // Rol por defecto al registrarse desde la web: personal del establecimiento.
@@ -63,13 +63,13 @@ function decodeToken(token) {
 export async function login(email, password) {
   if (DEMO_MODE) {
     await delay();
-    return { token: "demo-token", user: { ...demoUser, email: email || demoUser.email } };
+    return { token: "demo-token", refreshToken: "demo-refresh", user: { ...demoUser, email: email || demoUser.email } };
   }
   const { data } = await api.post("/api/v1/auth/login", {
     emailAddress: email,
     password,
   });
-  return { token: data.token, user: mapUser(data) };
+  return { token: data.token, refreshToken: data.refreshToken, user: mapUser(data) };
 }
 
 /**
@@ -81,17 +81,17 @@ export async function login(email, password) {
 export async function loginWithGoogle(idToken) {
   if (DEMO_MODE) {
     await delay();
-    return { token: "demo-token", user: demoUser };
+    return { token: "demo-token", refreshToken: "demo-refresh", user: demoUser };
   }
   const { data } = await api.post("/api/v1/auth/google", { idToken });
-  return { token: data.token, user: mapUser(data) };
+  return { token: data.token, refreshToken: data.refreshToken, user: mapUser(data) };
 }
 
 /** @returns {Promise<import("../types").AuthResponse>} */
 export async function register(fullName, email, password, segment) {
   if (DEMO_MODE) {
     await delay();
-    return { token: "demo-token", user: { ...demoUser, fullName, email, segment } };
+    return { token: "demo-token", refreshToken: "demo-refresh", user: { ...demoUser, fullName, email, segment } };
   }
   // El alta ya devuelve token y perfil, asi que no hace falta encadenar un
   // login detras: era una segunda vuelta al servidor para pedir lo que la
@@ -103,7 +103,7 @@ export async function register(fullName, email, password, segment) {
     fullName,
     segment,
   });
-  return { token: data.token, user: mapUser(data) };
+  return { token: data.token, refreshToken: data.refreshToken, user: mapUser(data) };
 }
 
 /** @returns {Promise<import("../types").User>} */
@@ -167,4 +167,25 @@ export async function resetPassword(token, newPassword) {
 export async function verifyAccount(token) {
   if (DEMO_MODE) { await delay(400); return; }
   await api.post("/api/v1/auth/verify", { token });
+}
+
+/**
+ * Cierra la sesion en el servidor revocando el token de refresco.
+ *
+ * Sin esta llamada el token seguia siendo valido treinta dias despues de que el
+ * usuario pulsara "Cerrar sesion": borrarlo del navegador no lo revoca. El
+ * backend responde 204 incluso si el token ya no existe, asi que no hay nada
+ * que distinguir; si la red falla se sigue adelante con el cierre local, que es
+ * lo que el usuario pidio.
+ */
+export async function logout() {
+  const refreshToken = refreshStore.get();
+  if (DEMO_MODE || !refreshToken) return;
+  try {
+    // Con limite de tiempo: si el backend no responde, el usuario no se queda
+    // mirando una pantalla que no cierra nada.
+    await api.post("/api/v1/auth/logout", { refreshToken }, { timeout: 4000 });
+  } catch {
+    // Ignorado a proposito: ver arriba.
+  }
 }

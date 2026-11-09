@@ -1,9 +1,3 @@
-import { DEMO_MODE, delay } from "@/lib/api";
-import { demoSummary } from "@/lib/demo";
-import { getDeviceConsumption, getReadings } from "./energy.service";
-import { listDevices } from "./devices.service";
-import { getUnreadAlertCount } from "./alerts.service";
-
 /** Dias de historia que se piden: dos quincenas, para poder comparar una con otra. */
 export const SUMMARY_DAYS = 30;
 
@@ -95,30 +89,4 @@ function proyeccion(readings, currentMonthCost) {
   const diasDelMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
   const porDia = currentMonthCost / conLectura;
   return redondear(porDia * diasDelMes);
-}
-
-/**
- * Resumen del panel para las vistas que no cargan los datos por su cuenta.
- *
- * Se usa `allSettled` a proposito: si un modulo falla, el resumen se arma con
- * lo que si respondio en vez de quedarse en blanco entero.
- *
- * @returns {Promise<import("../types").DashboardSummary>}
- */
-export async function getDashboardSummary(userId) {
-  if (DEMO_MODE) { await delay(300); return demoSummary; }
-
-  const [consumptionRes, devicesRes, readingsRes, alertsRes] = await Promise.allSettled([
-    getDeviceConsumption(userId),
-    listDevices(userId),
-    getReadings(userId, SUMMARY_DAYS),
-    getUnreadAlertCount(userId),
-  ]);
-
-  return summarize({
-    consumption: consumptionRes.status === "fulfilled" ? consumptionRes.value : [],
-    devices: devicesRes.status === "fulfilled" ? devicesRes.value : [],
-    readings: readingsRes.status === "fulfilled" ? readingsRes.value : [],
-    unreadAlerts: alertsRes.status === "fulfilled" ? alertsRes.value : 0,
-  });
 }
