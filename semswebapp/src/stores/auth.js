@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { tokenStore } from "@/lib/api";
+import { refreshStore, tokenStore } from "@/lib/api";
 import * as authService from "@/services/auth.service";
 
 const USER_KEY = "sems-user";
@@ -29,8 +29,9 @@ export const useAuthStore = defineStore("auth", () => {
 
   const isAuthenticated = computed(() => Boolean(tokenStore.get()));
 
-  function persist(token, u) {
+  function persist({ token, refreshToken }, u) {
     tokenStore.set(token);
+    refreshStore.set(refreshToken);
     localStorage.setItem(USER_KEY, JSON.stringify(u));
     user.value = u;
   }
@@ -55,7 +56,7 @@ export const useAuthStore = defineStore("auth", () => {
     loading.value = true;
     try {
       const res = await authService.login(email, password);
-      persist(res.token, res.user);
+      persist(res, res.user);
     } finally {
       loading.value = false;
     }
@@ -65,7 +66,7 @@ export const useAuthStore = defineStore("auth", () => {
     loading.value = true;
     try {
       const res = await authService.loginWithGoogle(idToken);
-      persist(res.token, res.user);
+      persist(res, res.user);
     } finally {
       loading.value = false;
     }
@@ -75,7 +76,7 @@ export const useAuthStore = defineStore("auth", () => {
     loading.value = true;
     try {
       const res = await authService.register(fullName, email, password, segment);
-      persist(res.token, res.user);
+      persist(res, res.user);
     } finally {
       loading.value = false;
     }
@@ -103,8 +104,12 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
-  function logout() {
+  async function logout() {
+    // Primero el servidor, que necesita el token de refresco que se borra justo
+    // despues; da igual si falla, el cierre local no se negocia.
+    await authService.logout();
     tokenStore.clear();
+    refreshStore.clear();
     localStorage.removeItem(USER_KEY);
     user.value = null;
     // Redireccion dura a proposito: garantiza volver al login sin depender del
