@@ -201,22 +201,24 @@ export async function deletePaymentMethod(paymentMethodId) {
 }
 
 /**
- * Procesa un pago via Stripe (crea el intento de pago y el comprobante).
- * @param {{userId: string, paymentMethodId: string, amount: number, subscriptionId?: string, currency?: string}} args
+ * Estado del pago tal como lo muestra la pantalla.
+ *
+ * El backend nunca manda "paid": su estado de exito es "processed"
+ * (PaymentStatus). La web esperaba "paid", asi que todo pago cobrado caia en
+ * "Pendiente" y ofrecia un boton "Pagar" sobre algo que ya estaba pagado.
+ * "cancelled" se muestra como fallido: tampoco se cobro. "processing" sigue
+ * pendiente, que es lo que es.
  */
-export async function processPayment(args) {
-  if (DEMO_MODE) {
-    await delay(500);
-    return;
+function estadoDelPago(status) {
+  switch (String(status ?? "").toLowerCase()) {
+    case "processed":
+      return "PAID";
+    case "failed":
+    case "cancelled":
+      return "FAILED";
+    default:
+      return "PENDING";
   }
-  await api.post(`${BASE}/payments/process`, {
-    user_id: args.userId,
-    payment_method_id: args.paymentMethodId,
-    subscription_id: args.subscriptionId,
-    amount: args.amount,
-    currency: (args.currency ?? "pen").toLowerCase(),
-    payment_method: "card",
-  });
 }
 
 /**
@@ -260,7 +262,7 @@ export async function getInvoices(userId) {
       pdfUrl: inv?.pdf_url ?? null,
       date: (inv?.issued_at || p.paid_at || p.created_at || "").slice(0, 10),
       amount: inv?.total_amount ?? p.amount ?? 0,
-      status: p.status === "paid" ? "PAID" : p.status === "failed" ? "FAILED" : "PENDING",
+      status: estadoDelPago(p.status),
       description: inv?.invoice_number
         ? `Comprobante ${inv.invoice_number}`
         : `Pago ${String(p.currency ?? "PEN").toUpperCase()}`,
