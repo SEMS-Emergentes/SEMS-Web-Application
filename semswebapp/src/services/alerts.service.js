@@ -1,5 +1,5 @@
 import { api, DEMO_MODE, delay } from "@/lib/api";
-import { demoAlerts, demoThresholds, demoPreferences } from "@/lib/demoExtra";
+import { demoAlerts, demoThresholds, demoPreferences, demoInactivityRules } from "@/lib/demoExtra";
 import { listDevices } from "./devices.service";
 
 // Modulo de alertas del backend.
@@ -167,4 +167,69 @@ export async function updateNotificationPreference(userId, channel, enabled) {
     enabled,
     min_severity: "medium",
   });
+}
+
+/**
+ * Reglas creadas durante una sesion de demostracion.
+ *
+ * <p>Viven en memoria y se pierden al recargar, que es justo lo que se quiere:
+ * sin esto, crear una regla en modo demo no cambiaba nada en pantalla y el
+ * formulario parecia roto.
+ */
+const reglasCreadasEnDemo = [];
+
+/**
+ * Reglas de inactividad del usuario (equipos que dejaron de reportar).
+ *
+ * @returns {Promise<{ruleId: string, deviceId: string, ruleName: string,
+ *                    maxInactiveMinutes: number, active: boolean}[]>}
+ */
+export async function listInactivityRules(userId) {
+  if (DEMO_MODE) {
+    await delay(250);
+    return [...demoInactivityRules, ...reglasCreadasEnDemo];
+  }
+  const { data } = await api.get(`${BASE}/users/${userId}/inactivity-rules`);
+  return (data ?? []).map((r) => ({
+    ruleId: r.inactivity_rule_id,
+    deviceId: r.device_id ?? null,
+    ruleName: r.rule_name,
+    maxInactiveMinutes: r.max_inactive_minutes,
+    active: Boolean(r.active),
+  }));
+}
+
+/**
+ * Crea una regla de inactividad para un equipo.
+ *
+ * <p>El backend la revisa cada pocos minutos y avisa cuando el equipo lleva
+ * mas de ese tiempo sin reportar; mientras siga caido no repite el aviso.
+ */
+export async function createInactivityRule({ userId, deviceId, ruleName, maxInactiveMinutes }) {
+  if (DEMO_MODE) {
+    await delay(300);
+    const regla = {
+      ruleId: crypto.randomUUID(),
+      deviceId,
+      ruleName,
+      maxInactiveMinutes,
+      active: true,
+    };
+    reglasCreadasEnDemo.push(regla);
+    return regla;
+  }
+  const { data } = await api.post(`${BASE}/inactivity-rules`, {
+    user_id: userId,
+    device_id: deviceId,
+    rule_name: ruleName,
+    max_inactive_minutes: maxInactiveMinutes,
+    active: true,
+  });
+  return {
+    ruleId: data.inactivity_rule_id,
+    deviceId: data.device_id ?? null,
+    ruleName: data.rule_name,
+    maxInactiveMinutes: data.max_inactive_minutes,
+    active: Boolean(data.active),
+  };
 }

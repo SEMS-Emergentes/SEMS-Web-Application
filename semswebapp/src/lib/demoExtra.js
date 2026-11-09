@@ -53,3 +53,9 @@ export const demoInvoices = [
   { id: "inv-0987", date: "15 abr 2026", amount: 149, status: "PAID", description: "Plan Business · Abril" },
   { id: "inv-0965", date: "15 mar 2026", amount: 0, status: "PAID", description: "Plan Starter" },
 ];
+
+// Una regla por el equipo que lleva mas tiempo sin reportar: es el caso que la
+// pantalla tiene que saber mostrar.
+export const demoInactivityRules = [
+  { ruleId: "ir-01", deviceId: "d-05", ruleName: "Lavadora sin reportar", maxInactiveMinutes: 60, active: true },
+];

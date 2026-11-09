@@ -359,6 +359,32 @@ export async function createReading(userId, input) {
   return mapReading(data);
 }
 
+/**
+ * Emite (o rota) la credencial con la que el medidor envia sus lecturas solo.
+ *
+ * <p>El backend devuelve la clave en claro una unica vez: de ella guarda solo
+ * el hash. Quien la pierda tiene que emitir otra, y emitir otra invalida la
+ * anterior, que es como se retira la de un aparato que se cree comprometido.
+ *
+ * @returns {Promise<{meterId: string, apiKey: string, issuedAt: string}>}
+ */
+export async function issueMeterCredential(meterId) {
+  if (DEMO_MODE) {
+    await delay(400);
+    return {
+      meterId,
+      apiKey: "sems_mk_" + crypto.randomUUID().replace(/-/g, "") + "DEMO",
+      issuedAt: new Date().toISOString(),
+    };
+  }
+  const { data } = await api.post(`${BASE}/energy-meters/${meterId}/credential`, {});
+  return {
+    meterId: data.meter_id,
+    apiKey: data.api_key,
+    issuedAt: data.issued_at,
+  };
+}
+
 /** @returns {import("../types").EnergyMeter} */
 function mapMeter(m) {
   return {
@@ -369,6 +395,10 @@ function mapMeter(m) {
     zoneId: m.zone_id ?? null,
     active: m.status === "active",
     lastReadingKwh: 0,
+    // Nulo mientras el medidor no tenga clave de ingesta. Los backends que
+    // todavia no informan el campo lo dejan asi, y la interfaz se limita a no
+    // mostrar la fecha.
+    credentialIssuedAt: m.credential_issued_at ?? null,
   };
 }
 
