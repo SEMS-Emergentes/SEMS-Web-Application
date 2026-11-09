@@ -19,16 +19,6 @@ export async function listDevices(userId) {
 }
 
 /** @returns {Promise<import("../types").Device>} */
-export async function getDevice(deviceId) {
-  if (DEMO_MODE) {
-    await delay(250);
-    return demoDevices.find((d) => d.deviceId === deviceId) ?? demoDevices[0];
-  }
-  const { data } = await api.get(`${BASE}/devices/${deviceId}`);
-  return data;
-}
-
-/** @returns {Promise<import("../types").Device>} */
 export async function createDevice(payload) {
   if (DEMO_MODE) {
     await delay();

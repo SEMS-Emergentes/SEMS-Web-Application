@@ -72,44 +72,6 @@ export function aggregateByDay(readings, days = 14) {
 }
 
 /**
- * @typedef {object} PeriodComparison
- * @property {number} currentKwh
- * @property {number} previousKwh
- * @property {number} currentCost
- * @property {number} previousCost
- * @property {number} deltaPct  variacion % del actual respecto al anterior
- */
-
-/**
- * Compara el periodo actual (ultimos N dias) contra el anterior equivalente.
- * @returns {Promise<PeriodComparison>}
- */
-export async function getPeriodComparison(userId, days = 7, cargado = {}) {
-  const readings = await getReadings(userId, days * 2, cargado); // agregadas por dia
-  const cutoffMs = Date.now() - days * 86_400_000;
-  let currentKwh = 0, previousKwh = 0, currentCost = 0, previousCost = 0;
-  for (const r of readings) {
-    const t = new Date(r.date).getTime();
-    if (isNaN(t)) continue;
-    if (t >= cutoffMs) {
-      currentKwh += r.kwh;
-      currentCost += r.cost;
-    } else {
-      previousKwh += r.kwh;
-      previousCost += r.cost;
-    }
-  }
-  const deltaPct = previousKwh > 0 ? ((currentKwh - previousKwh) / previousKwh) * 100 : 0;
-  return {
-    currentKwh: +currentKwh.toFixed(2),
-    previousKwh: +previousKwh.toFixed(2),
-    currentCost: +currentCost.toFixed(2),
-    previousCost: +previousCost.toFixed(2),
-    deltaPct: +deltaPct.toFixed(1),
-  };
-}
-
-/**
  * Consumo por dispositivo del periodo.
  * @returns {Promise<import("../types").DeviceConsumption[]>}
  */
