@@ -194,7 +194,7 @@ function colorAt(i) {
       <KpiCard
         :icon="Receipt"
         tone="blue"
-        :label="t('Gasto actual', 'Current spend')"
+        :label="t('Gasto de 30 días', '30-day spend')"
         :value="soles(summary.currentMonthCost)"
         :hint="proyeccionPie"
       />
@@ -203,7 +203,7 @@ function colorAt(i) {
         tone="amber"
         :label="t('Consumo total', 'Total usage')"
         :value="fmtKwh(summary.totalKwh)"
-        :hint="t('Mes en curso', 'Current month')"
+        :hint="t('Últimos 30 días', 'Last 30 days')"
       />
       <KpiCard
         :icon="Cpu"
