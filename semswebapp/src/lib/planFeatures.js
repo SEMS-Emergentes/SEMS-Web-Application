@@ -18,10 +18,12 @@ const ROTULOS = {
       : v === "1"
         ? t("1 local incluido", "1 site included")
         : t(`${v} locales incluidos`, `${v} sites included`),
+  // Es el limite que aplica la pantalla de Dispositivos: cuenta equipos, no
+  // medidores, y el texto tiene que decir lo mismo que se bloquea.
   DEVICES_PER_SITE_LIMIT: (v, t) =>
     v === ILIMITADO
-      ? t("Medidores ilimitados por local", "Unlimited meters per site")
-      : t(`Hasta ${v} medidores por local`, `Up to ${v} meters per site`),
+      ? t("Equipos ilimitados por local", "Unlimited devices per site")
+      : t(`Hasta ${v} equipos por local`, `Up to ${v} devices per site`),
   BASIC_INCLUDED: (_v, t) => t("Todo lo de Starter", "Everything in Starter"),
   BUSINESS_INCLUDED: (_v, t) => t("Todo lo de Business", "Everything in Business"),
   ZONE_ANALYTICS: (_v, t) => t("Consumo desglosado por zona", "Consumption broken down by zone"),
