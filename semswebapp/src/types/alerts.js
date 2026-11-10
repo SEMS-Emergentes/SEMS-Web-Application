@@ -7,7 +7,7 @@
 /** @typedef {"ACTIVE" | "ACKNOWLEDGED" | "RESOLVED"} AlertStatus */
 /** @typedef {"LOW" | "MEDIUM" | "HIGH"} AlertSeverity */
 /** @typedef {"THRESHOLD" | "ANOMALY" | "INACTIVITY" | "DEMAND"} AlertType */
-/** @typedef {"EMAIL" | "SMS" | "PUSH"} NotificationChannel */
+/** @typedef {"EMAIL"} NotificationChannel */
 
 /**
  * @typedef {object} Alert

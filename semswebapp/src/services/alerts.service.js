@@ -38,8 +38,6 @@ function normType(t) {
 
 const channelLabel = {
   EMAIL: "Correo electrónico",
-  SMS: "SMS",
-  PUSH: "Notificación push",
 };
 
 /** @returns {Promise<import("../types/alerts").Alert[]>} */

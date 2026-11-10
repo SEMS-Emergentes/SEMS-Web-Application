@@ -112,16 +112,16 @@ const filtered = computed(() =>
   (alerts.value ?? []).filter((a) => tab.value === "ALL" || a.status === tab.value)
 );
 
-// Los tres canales se muestran siempre, aunque el backend aun no tenga
-// preferencia guardada para alguno: si no, el usuario no podria activarlo.
+// Solo el correo: es el unico canal que el backend envia. Plataforma web y SMS
+// eran interruptores sin nada detras; la bandeja muestra los avisos siempre.
 const channels = computed(() => [
-  { channel: "PUSH", label: t("Plataforma web", "Web platform") },
   { channel: "EMAIL", label: t("Correo electrónico", "Email") },
-  { channel: "SMS", label: t("SMS", "SMS") },
 ]);
 
+// Sin preferencia guardada el backend envia el correo, asi que el interruptor
+// arranca encendido: antes se mostraba apagado mientras los correos llegaban.
 function isEnabled(channel) {
-  return (prefs.value ?? []).find((p) => p.channel === channel)?.enabled ?? false;
+  return (prefs.value ?? []).find((p) => p.channel === channel)?.enabled ?? true;
 }
 
 const deviceOptions = computed(() =>
@@ -298,6 +298,12 @@ function isResolving(id) {
         <!-- Preferencias de notificacion -->
         <UiCard>
           <UiCardTitle>{{ t("Notificaciones", "Notifications") }}</UiCardTitle>
+          <p class="mb-3 text-xs text-slate-400">
+            {{ t(
+              "Los avisos siempre aparecen en la bandeja. Aquí eliges si además te llegan por correo.",
+              "Alerts always show up in the inbox. Here you choose whether they also reach you by email."
+            ) }}
+          </p>
           <UiLoading v-if="loadingPrefs" />
           <UiErrorState v-else-if="errorPrefs" />
           <ul
