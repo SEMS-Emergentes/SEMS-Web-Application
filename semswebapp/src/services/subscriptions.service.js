@@ -27,13 +27,15 @@ function periodLabel(billing) {
   return b.startsWith("year") || b.startsWith("annual") || b === "yearly" ? "año" : "mes";
 }
 
+// Codigo, nombre y valor; el texto lo pone la vista con planFeatureLabel, que
+// es donde se conoce el idioma activo.
 function planFeatures(p) {
   const feats = (p.PlanFeatures ?? [])
     .filter((f) => (f.FeatureCode ?? "").toUpperCase() !== "STRIPE_PRICE_ID")
-    .map((f) => f.FeatureName || f.FeatureValue || "")
-    .filter(Boolean);
+    .map((f) => ({ code: f.FeatureCode ?? "", name: f.FeatureName ?? "", value: f.FeatureValue ?? "" }))
+    .filter((f) => f.code || f.name);
   if (feats.length > 0) return feats;
-  return p.Description ? [p.Description] : [];
+  return p.Description ? [{ code: "", name: p.Description, value: "" }] : [];
 }
 
 /** @returns {import("../types/billing").SubscriptionPlan} */

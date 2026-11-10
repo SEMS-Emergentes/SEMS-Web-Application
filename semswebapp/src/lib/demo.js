@@ -90,7 +90,7 @@ export const demoConsumption = [
 export const demoMeters = [
   // Con local asignado: la lectura de potencia solo se interpreta contra la
   // potencia contratada de ese suministro.
-  { meterId: "m-01", name: "Medidor principal EOS", serial: "EOS-001842", siteId: "site-demo-01", zoneId: null, active: true, lastReadingKwh: 1842.6 },
+  { meterId: "m-01", name: "Medidor principal EOS", serial: "EOS-001842", siteId: "site-demo-01", zoneId: null, active: true, lastSeenAt: new Date().toISOString() },
 ];
 
 /**

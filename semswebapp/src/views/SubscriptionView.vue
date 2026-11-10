@@ -24,6 +24,7 @@ import { soles } from "@/lib/format";
 import { useAuthStore } from "@/stores/auth";
 import { useLangStore } from "@/stores/lang";
 import { STRIPE_ENABLED } from "@/lib/stripe";
+import { planFeatureLabel } from "@/lib/planFeatures";
 
 const qc = useQueryClient();
 const { user } = storeToRefs(useAuthStore());
@@ -306,11 +307,11 @@ function isRemoving(id) {
           <ul class="mt-5 flex-1 space-y-2.5">
             <li
               v-for="f in plan.features"
-              :key="f"
+              :key="f.code || f.name"
               class="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300"
             >
               <Check class="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
-              {{ f }}
+              {{ planFeatureLabel(f, t) }}
             </li>
           </ul>
 

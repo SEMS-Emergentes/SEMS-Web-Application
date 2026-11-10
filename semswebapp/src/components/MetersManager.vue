@@ -18,7 +18,6 @@ import {
 } from "@/services/energy.service";
 import { getMyOrganization, listSites, listZones } from "@/services/organizations.service";
 import { useLangStore } from "@/stores/lang";
-import { kwh as fmtKwh } from "@/lib/format";
 
 const props = defineProps({ userId: { type: String, required: true } });
 
@@ -96,6 +95,18 @@ const nombrePorId = computed(() => {
   for (const z of zonas.value ?? []) mapa.set(z.zoneId, z.name);
   return mapa;
 });
+
+// last_seen_at es cuando el medidor hablo con el servidor, no la fecha de la
+// lectura: un reenvio de lecturas viejas tambien lo mueve. Llamarlo "ultima
+// lectura" contradecia a la tarjeta de consumo, que si muestra esa fecha.
+function ultimoContacto(m) {
+  if (!m.lastSeenAt) return t("Aún no ha enviado datos", "Hasn't sent data yet");
+  const fecha = new Date(m.lastSeenAt).toLocaleString(t("es-PE", "en-US"), {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  return `${t("Último contacto", "Last contact")}: ${fecha}`;
+}
 
 /** Texto de ubicacion de un medidor: local y, si la tiene, zona. */
 function ubicacion(m) {
@@ -236,7 +247,7 @@ function confirmUnlink(meterId) {
               {{ m.name }}
             </p>
             <p class="text-xs text-slate-400">
-              {{ t("Lectura acumulada", "Total reading") }}: {{ fmtKwh(m.lastReadingKwh) }}
+              {{ ultimoContacto(m) }}
             </p>
             <p
               v-if="ubicacion(m)"
