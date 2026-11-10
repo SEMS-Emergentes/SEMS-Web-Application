@@ -20,13 +20,28 @@ const BASE = "/api/v1";
  * una vez y pasandola a cada calculo, el panel hace una peticion donde antes
  * hacia cuatro identicas.
  */
-export async function getReadingsRaw(userId, limit = 200) {
+/**
+ * Dias de lecturas que se piden: el mayor periodo que muestra alguna pantalla,
+ * los resumenes mensuales de Monitoreo.
+ */
+export const READINGS_DAYS = 90;
+
+export async function getReadingsRaw(userId, days = READINGS_DAYS) {
   // Sin esta rama, las tres pantallas que parten de las lecturas crudas
   // (Resumen, Monitoreo y Reportes) llamaban al backend tambien en modo demo y
   // se quedaban en su estado de error: el modo demo existe justamente para
   // poder ensenarlas sin backend.
-  if (DEMO_MODE) { await delay(); return demoRawReadings().slice(0, limit); }
-  const { data } = await api.get(`${BASE}/energy-readings/user/${userId}`, { params: { limit } });
+  if (DEMO_MODE) { await delay(); return demoRawReadings(days); }
+  // Por rango de fechas y no "las ultimas N": con un tope de 200 lecturas, un
+  // medidor que reporta cada 15 minutos llena el cupo en dos dias, y el grafico
+  // de 14 dias, la comparacion con el periodo anterior, la proyeccion y los
+  // reportes se calculaban sobre esos dos dias sin avisar. El periodo anterior
+  // salia en cero y la pantalla decia que el consumo "se mantuvo igual".
+  const hasta = new Date();
+  const desde = new Date(hasta.getTime() - days * 86_400_000);
+  const { data } = await api.get(`${BASE}/energy-readings/range`, {
+    params: { userId, from: desde.toISOString(), to: hasta.toISOString() },
+  });
   return data ?? [];
 }
 

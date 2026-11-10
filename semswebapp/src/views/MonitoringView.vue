@@ -66,15 +66,23 @@ const { data: consumption, isLoading: loadingConsumption, isError: errorConsumpt
 const readings = computed(() => aggregateByDay(rawReadings.value ?? [], days.value));
 
 // Comparacion con el periodo anterior, calculada sobre las mismas lecturas.
+//
+// Se reparte cada lectura por su marca de tiempo, con el mismo corte que la
+// tarjeta de consumo del periodo. Antes se agrupaba primero por dia y el dia
+// del corte caia entero en "anterior" por empezar a medianoche, asi que la
+// misma pantalla daba dos totales distintos para "los ultimos 14 dias".
 const comparison = computed(() => {
-  const diario = aggregateByDay(rawReadings.value ?? [], days.value * 2);
-  const corte = Date.now() - days.value * 86_400_000;
+  const ahora = Date.now();
+  const corte = ahora - days.value * 86_400_000;
+  const inicio = ahora - 2 * days.value * 86_400_000;
   let actualKwh = 0, anteriorKwh = 0, actualCoste = 0, anteriorCoste = 0;
-  for (const r of diario) {
-    const t = new Date(r.date).getTime();
-    if (Number.isNaN(t)) continue;
-    if (t >= corte) { actualKwh += r.kwh; actualCoste += r.cost; }
-    else { anteriorKwh += r.kwh; anteriorCoste += r.cost; }
+  for (const r of rawReadings.value ?? []) {
+    const t = new Date(r.timestamp).getTime();
+    if (Number.isNaN(t) || t < inicio || t > ahora) continue;
+    const kwh = r.energy_kwh ?? 0;
+    const coste = r.estimated_cost ?? 0;
+    if (t >= corte) { actualKwh += kwh; actualCoste += coste; }
+    else { anteriorKwh += kwh; anteriorCoste += coste; }
   }
   const deltaPct = anteriorKwh > 0 ? ((actualKwh - anteriorKwh) / anteriorKwh) * 100 : 0;
   return {
