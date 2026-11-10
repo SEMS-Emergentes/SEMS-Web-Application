@@ -14,13 +14,14 @@ import { getMyOrganization, listSites, listZones } from "@/services/organization
 import { saveDeviceExtras } from "@/lib/deviceExtras";
 import { useAuthStore } from "@/stores/auth";
 import { useLangStore } from "@/stores/lang";
-import { usePlanTier } from "@/composables/usePlan";
-import { DEVICE_LIMIT, TIER_LABEL } from "@/lib/plan";
+import { usePlanTier, usePlanDeviceLimit } from "@/composables/usePlan";
+import { TIER_LABEL } from "@/lib/plan";
 
 const qc = useQueryClient();
 const { user } = storeToRefs(useAuthStore());
 const { t } = useLangStore();
 const tier = usePlanTier();
+const limit = usePlanDeviceLimit();
 
 const addOpen = ref(false);
 const editing = ref(null);
@@ -91,10 +92,20 @@ const remove = useMutation({
   },
 });
 
-const limit = computed(() => DEVICE_LIMIT[tier.value]);
-const count = computed(() => devices.value?.length ?? 0);
-const atLimit = computed(() => count.value >= limit.value);
+// El limite es por local, como lo anuncia el plan: se cuenta cada local por
+// separado y el formulario solo ofrece los que aun tienen cupo.
+const porLocal = computed(() => {
+  const mapa = new Map();
+  for (const d of devices.value ?? []) mapa.set(d.siteId, (mapa.get(d.siteId) ?? 0) + 1);
+  return mapa;
+});
+const sitiosConCupo = computed(() =>
+  (sites.value ?? []).filter((s) => (porLocal.value.get(s.siteId) ?? 0) < limit.value)
+);
 const hasLimit = computed(() => Number.isFinite(limit.value));
+const atLimit = computed(() =>
+  hasLimit.value && (sites.value?.length ?? 0) > 0 && sitiosConCupo.value.length === 0
+);
 const tierLabel = computed(() => TIER_LABEL[tier.value]);
 
 const modalOpen = computed(() => addOpen.value || Boolean(editing.value));
@@ -124,7 +135,7 @@ function onSubmit({ payload, extras }) {
         <p class="text-sm text-slate-500 dark:text-slate-400">
           {{ t("Gestiona los equipos vinculados a tu medidor.", "Manage the devices linked to your meter.") }}
           <template v-if="hasLimit">
-            · {{ count }}/{{ limit }} ({{ tierLabel }})
+            · {{ t(`hasta ${limit} por local`, `up to ${limit} per site`) }} ({{ tierLabel }})
           </template>
         </p>
       </div>
@@ -142,8 +153,8 @@ function onSubmit({ payload, extras }) {
     >
       {{
         t(
-          `Alcanzaste el límite de ${limit} dispositivos de tu plan ${tierLabel}.`,
-          `You reached your ${tierLabel} plan limit of ${limit} devices.`
+          `Tus locales llegaron al límite de ${limit} dispositivos por local del plan ${tierLabel}.`,
+          `Your sites reached the ${tierLabel} plan limit of ${limit} devices per site.`
         )
       }}
       <RouterLink
@@ -188,7 +199,7 @@ function onSubmit({ payload, extras }) {
       :user-id="user?.id ?? ''"
       :device="editing"
       :loading="saving"
-      :sites="sites ?? []"
+      :sites="editing ? (sites ?? []) : sitiosConCupo"
       :zones="zones ?? []"
       @close="closeModal"
       @submit="onSubmit"

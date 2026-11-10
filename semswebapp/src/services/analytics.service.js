@@ -6,6 +6,7 @@ import {
   demoRankings,
 } from "@/lib/demo";
 import { listDevices } from "./devices.service";
+import { getDeviceConsumption } from "./energy.service";
 
 // Modulo de analitica del backend.
 const BASE = "/api/v1/analytics";
@@ -122,7 +123,7 @@ export async function getRankings(userId, cargado = {}) {
   const devices = cargado.devices ?? (await listDevices(userId).catch(() => []));
   const nameById = new Map(devices.map((d) => [d.deviceId, d.deviceName]));
 
-  return items
+  const guardado = items
     .filter((r) => {
       const id = str(r.device_id);
       return !id || devices.length === 0 || nameById.has(id);
@@ -138,4 +139,15 @@ export async function getRankings(userId, cargado = {}) {
         cost: num(r.estimated_amount),
       };
     });
+  if (guardado.length > 0) return guardado;
+
+  // El backend solo guarda rankings que alguien le envia, y nada se los envia:
+  // la tarjeta salia siempre vacia aunque los equipos tuvieran consumo. Se arma
+  // con el mismo consumo por equipo que muestran el Resumen y el Monitoreo, asi
+  // las cifras coinciden entre pantallas.
+  const consumo = await getDeviceConsumption(userId, { devices });
+  return [...consumo]
+    .sort((a, b) => b.kwh - a.kwh)
+    .slice(0, 5)
+    .map((c, i) => ({ rank: i + 1, deviceName: c.deviceName, kwh: c.kwh, cost: c.cost }));
 }

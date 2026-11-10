@@ -43,9 +43,3 @@ export function hasTier(current, required) {
   return ORDER.indexOf(current) >= ORDER.indexOf(required);
 }
 
-// Limite de dispositivos vinculados por plan (Enterprise = ilimitado).
-export const DEVICE_LIMIT = {
-  starter: 3,
-  business: 10,
-  enterprise: Number.POSITIVE_INFINITY,
-};

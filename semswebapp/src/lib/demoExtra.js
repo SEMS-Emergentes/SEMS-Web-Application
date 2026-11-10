@@ -19,8 +19,6 @@ export const demoThresholds = [
 
 export const demoPreferences = [
   { channel: "EMAIL", label: "Correo electrónico", enabled: true },
-  { channel: "PUSH", label: "Notificaciones push", enabled: true },
-  { channel: "SMS", label: "Mensaje de texto (SMS)", enabled: false },
 ];
 
 // ---------- Suscripción y pagos ----------
