@@ -29,22 +29,14 @@
  */
 
 /**
- * @typedef {object} PaymentMethod
- * @property {string} id
- * @property {string} brand  Visa, Mastercard
- * @property {string} last4
- * @property {number} expMonth
- * @property {number} expYear
- * @property {boolean} primary
- */
-
-/**
  * @typedef {object} Invoice
  * @property {string} id
  * @property {string} date
  * @property {number} amount
  * @property {InvoiceStatus} status
  * @property {string} description
+ * @property {string | null} [number]  numero de comprobante, si se cobro
+ * @property {string | null} [method]  p. ej. "Visa •••• 4242"
  */
 
 export {};

@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@primeuix/themes": "^1.0.0",
-    "@stripe/stripe-js": "^9.8.0",
     "@tanstack/vue-query": "^5.59.0",
     "axios": "^1.7.7",
     "chart.js": "^4.4.4",
