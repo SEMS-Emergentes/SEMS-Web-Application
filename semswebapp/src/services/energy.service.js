@@ -366,7 +366,9 @@ export async function issueMeterCredential(meterId) {
 function mapMeter(m) {
   return {
     meterId: m.id,
-    name: m.model || m.meter_serial,
+    // La serie es lo que distingue un medidor de otro: el modelo se repite en
+    // todos los aparatos iguales y la lista mostraba "EOS" dos veces.
+    name: m.meter_serial || m.model,
     serial: m.meter_serial,
     siteId: m.site_id ?? null,
     zoneId: m.zone_id ?? null,

@@ -6,6 +6,7 @@ import UiBadge from "./ui/UiBadge.vue";
 import UiButton from "./ui/UiButton.vue";
 import { getDeviceExtras, profileById } from "@/lib/deviceExtras";
 import { useLangStore } from "@/stores/lang";
+import { deviceTypeLabel } from "@/lib/deviceTypes";
 
 const props = defineProps({
   device: { type: Object, required: true },
@@ -73,7 +74,7 @@ const profile = computed(() => profileById(extras.value.profileId));
       {{ device.deviceName }}
     </h3>
     <p class="text-xs text-slate-400">
-      {{ device.deviceType }}
+      {{ deviceTypeLabel(device.deviceType, t) }}
     </p>
 
     <div class="mt-4 space-y-2 border-t border-slate-100 pt-3 text-sm dark:border-navy-800">

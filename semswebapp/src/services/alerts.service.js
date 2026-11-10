@@ -30,6 +30,9 @@ function normType(t) {
   const s = String(t ?? "").toLowerCase();
   if (s.includes("anomaly")) return "ANOMALY";
   if (s.includes("inactiv")) return "INACTIVITY";
+  // El aviso de potencia del local llegaba como "Umbral": se confundia con el
+  // limite de consumo de un equipo, que es otra regla.
+  if (s.includes("demand")) return "DEMAND";
   return "THRESHOLD";
 }
 

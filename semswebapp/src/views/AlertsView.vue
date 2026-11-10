@@ -105,6 +105,7 @@ const typeLabel = computed(() => ({
   THRESHOLD: t("Umbral", "Threshold"),
   ANOMALY: t("Anomalía", "Anomaly"),
   INACTIVITY: t("Inactividad", "Inactivity"),
+  DEMAND: t("Demanda", "Demand"),
 }));
 
 const filtered = computed(() =>

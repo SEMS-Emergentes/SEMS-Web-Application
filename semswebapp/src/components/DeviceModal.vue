@@ -6,6 +6,7 @@ import UiField from "./ui/UiField.vue";
 import UiButton from "./ui/UiButton.vue";
 import { CONSUMPTION_PROFILES, getDeviceExtras } from "@/lib/deviceExtras";
 import { useLangStore } from "@/stores/lang";
+import { deviceTypeLabel, protocolLabel } from "@/lib/deviceTypes";
 
 // Alta y edicion de dispositivo. Es el mismo formulario: si llega `device`
 // edita, si no crea.
@@ -158,7 +159,7 @@ function profileLabel(p) {
               :key="opt"
               :value="opt"
             >
-              {{ opt }}
+              {{ deviceTypeLabel(opt, t) }}
             </option>
           </select>
         </UiField>
@@ -172,7 +173,7 @@ function profileLabel(p) {
               :key="p"
               :value="p"
             >
-              {{ p }}
+              {{ protocolLabel(p) }}
             </option>
           </select>
         </UiField>
