@@ -31,7 +31,7 @@ const { user } = storeToRefs(useAuthStore());
 const { t } = useLangStore();
 const tier = usePlanTier();
 
-// La analitica avanzada es de plan Plus en adelante.
+// La analitica avanzada es de plan Business en adelante.
 const allowed = computed(() => hasTier(tier.value, "business"));
 
 // `enabled` incluye el plan: sin acceso no tiene sentido pedir los datos.
@@ -106,8 +106,8 @@ function isApplying(id) {
       :title="t('Analítica avanzada', 'Advanced analytics')"
       :description="
         t(
-          'Las recomendaciones personalizadas, la detección de anomalías y la proyección de factura están disponibles desde el plan Plus.',
-          'Personalized recommendations, anomaly detection and bill forecasting are available from the Plus plan.'
+          'Las recomendaciones personalizadas, la detección de anomalías y la proyección de factura están disponibles desde el plan Business.',
+          'Personalized recommendations, anomaly detection and bill forecasting are available from the Business plan.'
         )
       "
     />

@@ -371,7 +371,10 @@ function mapMeter(m) {
     siteId: m.site_id ?? null,
     zoneId: m.zone_id ?? null,
     active: m.status === "active",
-    lastReadingKwh: 0,
+    // Ultimo contacto del medidor con el servidor. Sustituye a una "lectura
+    // acumulada" que se rellenaba siempre con 0: el backend no informa ningun
+    // acumulado, y la tarjeta decia 0 kWh a medidores con meses de datos.
+    lastSeenAt: m.last_seen_at ?? null,
     // Nulo mientras el medidor no tenga clave de ingesta. Los backends que
     // todavia no informan el campo lo dejan asi, y la interfaz se limita a no
     // mostrar la fecha.
@@ -406,7 +409,7 @@ export async function linkMeter(userId, serial, opts = {}) {
       siteId: siteId ?? null,
       zoneId: zoneId ?? null,
       active: true,
-      lastReadingKwh: 0,
+      lastSeenAt: null,
     };
   }
   const { data } = await api.post(`${BASE}/energy-meters`, {

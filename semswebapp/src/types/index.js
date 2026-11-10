@@ -138,7 +138,7 @@
  * @property {string} meterId
  * @property {string} name
  * @property {boolean} active
- * @property {number} lastReadingKwh
+ * @property {string | null} lastSeenAt ISO del ultimo contacto del medidor con el servidor, o null si nunca reporto.
  */
 
 /**

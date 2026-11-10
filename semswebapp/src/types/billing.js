@@ -13,7 +13,7 @@
  * @property {string} name
  * @property {number} price  soles
  * @property {"mes" | "año"} period
- * @property {string[]} features
+ * @property {{code: string, name: string, value: string}[]} features
  * @property {boolean} [recommended]
  */
 

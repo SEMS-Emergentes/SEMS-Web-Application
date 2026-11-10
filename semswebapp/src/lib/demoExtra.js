@@ -27,9 +27,9 @@ export const demoPreferences = [
 // Los tres planes son los mismos que siembra el backend en PlanSeeder y los
 // que publica la landing: el precio va por locales, no por medidores.
 export const demoPlans = [
-  { id: "p-starter", name: "Starter", price: 0, period: "mes", features: ["1 local incluido", "Hasta 10 medidores por local", "Panel de consumo del local", "Alertas de consumo"] },
-  { id: "p-business", name: "Business", price: 149, period: "mes", recommended: true, features: ["Todo lo de Starter", "5 locales incluidos", "Hasta 50 medidores por local", "Consumo desglosado por zona", "Aviso de demanda antes de superar la potencia contratada", "Reportes de consumo en hora punta"] },
-  { id: "p-enterprise", name: "Enterprise", price: 399, period: "mes", features: ["Todo lo de Business", "Locales y medidores ilimitados", "Comparación de rendimiento entre locales", "Análisis de categoría tarifaria", "Soporte prioritario"] },
+  { id: "p-starter", name: "Starter", price: 0, period: "mes", features: [{ code: "SITES_LIMIT", name: "", value: "1" }, { code: "DEVICES_PER_SITE_LIMIT", name: "", value: "10" }, { code: "BASIC_DASHBOARD", name: "", value: "enabled" }, { code: "CONSUMPTION_ALERTS", name: "", value: "enabled" }] },
+  { id: "p-business", name: "Business", price: 149, period: "mes", recommended: true, features: [{ code: "BASIC_INCLUDED", name: "", value: "enabled" }, { code: "SITES_LIMIT", name: "", value: "5" }, { code: "DEVICES_PER_SITE_LIMIT", name: "", value: "50" }, { code: "ZONE_ANALYTICS", name: "", value: "enabled" }, { code: "DEMAND_ALERTS", name: "", value: "enabled" }, { code: "PEAK_HOUR_REPORTS", name: "", value: "enabled" }] },
+  { id: "p-enterprise", name: "Enterprise", price: 399, period: "mes", features: [{ code: "BUSINESS_INCLUDED", name: "", value: "enabled" }, { code: "SITES_LIMIT", name: "", value: "unlimited" }, { code: "DEVICES_PER_SITE_LIMIT", name: "", value: "unlimited" }, { code: "SITE_BENCHMARKING", name: "", value: "enabled" }, { code: "TARIFF_OPTIMIZATION", name: "", value: "enabled" }, { code: "PRIORITY_SUPPORT", name: "", value: "enabled" }] },
 ];
 
 export const demoSubscription = {
