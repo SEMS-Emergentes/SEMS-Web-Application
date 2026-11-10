@@ -141,16 +141,6 @@ export const demoRankings = demoConsumption
   .slice(0, 5)
   .map((c, i) => ({ rank: i + 1, deviceName: c.deviceName, kwh: c.kwh, cost: c.cost }));
 
-export const demoSummary = {
-  currentMonthCost: 231.6,
-  savingAmount: 86.4,
-  savingPct: 21,
-  projectedCost: 318.4,
-  totalKwh: 297,
-  activeDevices: demoDevices.filter((d) => d.status === "ACTIVE").length,
-  unreadAlerts: demoAnomalies.filter((a) => !a.resolved).length,
-};
-
 // ---------- Organizacion, locales y zonas ----------
 export const demoOrganization = {
   organizationId: "org-demo-01",
