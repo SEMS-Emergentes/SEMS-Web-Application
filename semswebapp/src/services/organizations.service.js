@@ -176,6 +176,19 @@ export async function createZone(siteId, { name, zoneType, operatesOffHours }) {
   return mapZone(data);
 }
 
+export async function updateZone(zoneId, { name, zoneType, operatesOffHours }) {
+  if (DEMO_MODE) {
+    await delay(200);
+    return { zoneId, name, zoneType, operatesOffHours, status: "ACTIVE" };
+  }
+  const { data } = await api.put(`${BASE}/zones/${zoneId}`, {
+    name,
+    zone_type: zoneType,
+    operates_off_hours: Boolean(operatesOffHours),
+  });
+  return mapZone(data);
+}
+
 /** Archiva la zona. Igual que el local, cambia de estado en lugar de borrarse. */
 export async function archiveZone(zoneId) {
   if (DEMO_MODE) {

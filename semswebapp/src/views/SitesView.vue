@@ -2,7 +2,7 @@
 import { ref, computed, watch } from "vue";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
 import { storeToRefs } from "pinia";
-import { Building2, Plus, Pencil, Trash2, Save, Check, LoaderCircle } from "lucide-vue-next";
+import { Building2, Plus, Pencil, Trash2, Save, Check, LoaderCircle, X } from "lucide-vue-next";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiCardTitle from "@/components/ui/UiCardTitle.vue";
 import UiBadge from "@/components/ui/UiBadge.vue";
@@ -17,7 +17,7 @@ import SiteMetersCard from "@/components/SiteMetersCard.vue";
 import {
   getMyOrganization, createOrganization, updateOrganization,
   listSites, createSite, updateSite, archiveSite,
-  listZones, createZone, archiveZone,
+  listZones, createZone, updateZone, archiveZone,
 } from "@/services/organizations.service";
 import { useAuthStore } from "@/stores/auth";
 import { useLangStore } from "@/stores/lang";
@@ -190,20 +190,61 @@ const { data: zones, isLoading: loadingZones } = useQuery({
   enabled: computed(() => Boolean(seleccionadoId.value)),
 });
 
-const zonaForm = ref({ name: "", zoneType: "SALES_FLOOR", operatesOffHours: false });
+const ZONA_VACIA = () => ({ name: "", zoneType: "SALES_FLOOR", operatesOffHours: false });
+const zonaForm = ref(ZONA_VACIA());
+// Zona que se esta editando; null mientras el formulario crea una nueva. Una
+// zona mal nombrada o con el tipo equivocado solo se podia archivar y volver a
+// crear, y archivarla la separa de sus medidores.
+const zonaEditando = ref(null);
+const errorZona = ref("");
 
-const crearZona = useMutation({
-  mutationFn: () => createZone(seleccionadoId.value, zonaForm.value),
+function editarZona(z) {
+  zonaEditando.value = z.zoneId;
+  zonaForm.value = { name: z.name, zoneType: z.zoneType, operatesOffHours: Boolean(z.operatesOffHours) };
+  errorZona.value = "";
+}
+
+function cancelarEdicionZona() {
+  zonaEditando.value = null;
+  zonaForm.value = ZONA_VACIA();
+  errorZona.value = "";
+}
+
+// Antes un error al crear (por ejemplo, un nombre repetido, que el backend
+// rechaza con 409) no se mostraba: el boton no hacia nada y no se sabia por que.
+function mensajeDeZona(e) {
+  if (e?.response?.status === 409) {
+    return t("Ya hay una zona con ese nombre en este local.", "There is already a zone with that name in this site.");
+  }
+  return e?.response?.data?.message || t("No se pudo guardar la zona.", "Couldn't save the zone.");
+}
+
+const guardarZona = useMutation({
+  mutationFn: () => zonaEditando.value
+    ? updateZone(zonaEditando.value, zonaForm.value)
+    : createZone(seleccionadoId.value, zonaForm.value),
   onSuccess: () => {
-    zonaForm.value = { name: "", zoneType: "SALES_FLOOR", operatesOffHours: false };
+    cancelarEdicionZona();
     qc.invalidateQueries({ queryKey: ["zones"] });
+  },
+  onError: (e) => {
+    errorZona.value = mensajeDeZona(e);
   },
 });
 
 const archivarZona = useMutation({
   mutationFn: (zoneId) => archiveZone(zoneId),
-  onSuccess: () => qc.invalidateQueries({ queryKey: ["zones"] }),
+  onSuccess: (_data, zoneId) => {
+    if (zonaEditando.value === zoneId) cancelarEdicionZona();
+    qc.invalidateQueries({ queryKey: ["zones"] });
+  },
+  onError: (e) => {
+    errorZona.value = e?.response?.data?.message || t("No se pudo archivar la zona.", "Couldn't archive the zone.");
+  },
 });
+
+// Al cambiar de local se descarta una edicion a medias: la zona es de otro local.
+watch(seleccionadoId, cancelarEdicionZona);
 </script>
 
 <template>
@@ -579,22 +620,33 @@ const archivarZona = useMutation({
                   <span v-if="z.operatesOffHours">· {{ t("opera fuera de horario", "runs off-hours") }}</span>
                 </p>
               </div>
-              <UiButton
-                variant="ghost"
-                :title="t('Archivar zona', 'Archive zone')"
-                @click="archivarZona.mutate(z.zoneId)"
-              >
-                <Trash2 class="h-4 w-4" />
-              </UiButton>
+              <div class="flex shrink-0 gap-1">
+                <UiButton
+                  variant="ghost"
+                  :title="t('Editar zona', 'Edit zone')"
+                  :aria-label="t('Editar zona', 'Edit zone')"
+                  @click="editarZona(z)"
+                >
+                  <Pencil class="h-4 w-4" />
+                </UiButton>
+                <UiButton
+                  variant="ghost"
+                  :title="t('Archivar zona', 'Archive zone')"
+                  :aria-label="t('Archivar zona', 'Archive zone')"
+                  @click="archivarZona.mutate(z.zoneId)"
+                >
+                  <Trash2 class="h-4 w-4" />
+                </UiButton>
+              </div>
             </li>
           </ul>
 
           <form
             class="mt-4 space-y-3 border-t border-slate-200 pt-4 dark:border-navy-800"
-            @submit.prevent="crearZona.mutate()"
+            @submit.prevent="guardarZona.mutate()"
           >
             <div class="grid gap-3 sm:grid-cols-2">
-              <UiField :label="t('Nueva zona', 'New zone')">
+              <UiField :label="zonaEditando ? t('Nombre de la zona', 'Zone name') : t('Nueva zona', 'New zone')">
                 <input
                   v-model="zonaForm.name"
                   required
@@ -621,12 +673,33 @@ const archivarZona = useMutation({
             <UiToggle v-model="zonaForm.operatesOffHours">
               {{ t("Opera fuera del horario comercial", "Runs outside business hours") }}
             </UiToggle>
-            <UiButton
-              type="submit"
-              :disabled="crearZona.isPending.value"
+            <p
+              v-if="errorZona"
+              class="text-sm text-rose-600 dark:text-rose-400"
             >
-              <Plus class="h-4 w-4" /> {{ t("Añadir zona", "Add zone") }}
-            </UiButton>
+              {{ errorZona }}
+            </p>
+            <div class="flex gap-2">
+              <UiButton
+                type="submit"
+                :disabled="guardarZona.isPending.value"
+              >
+                <template v-if="zonaEditando">
+                  <Save class="h-4 w-4" /> {{ t("Guardar zona", "Save zone") }}
+                </template>
+                <template v-else>
+                  <Plus class="h-4 w-4" /> {{ t("Añadir zona", "Add zone") }}
+                </template>
+              </UiButton>
+              <UiButton
+                v-if="zonaEditando"
+                type="button"
+                variant="outline"
+                @click="cancelarEdicionZona"
+              >
+                <X class="h-4 w-4" /> {{ t("Cancelar", "Cancel") }}
+              </UiButton>
+            </div>
           </form>
         </UiCard>
       </div>
