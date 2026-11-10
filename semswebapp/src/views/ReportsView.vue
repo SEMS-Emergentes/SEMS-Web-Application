@@ -35,7 +35,7 @@ const tier = usePlanTier();
 const days = ref(30);
 const generating = ref(false);
 
-// La generacion de reportes es de plan Plus en adelante.
+// La generacion de reportes es de plan Business en adelante.
 const allowed = computed(() => hasTier(tier.value, "business"));
 const enabled = computed(() => Boolean(user.value) && allowed.value);
 
@@ -131,8 +131,8 @@ function download() {
       :title="t('Reportes mensuales', 'Monthly reports')"
       :description="
         t(
-          'La generación de reportes en PDF está disponible desde el plan Plus.',
-          'PDF report generation is available from the Plus plan.'
+          'La generación de reportes en PDF está disponible desde el plan Business.',
+          'PDF report generation is available from the Business plan.'
         )
       "
     />

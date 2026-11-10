@@ -142,12 +142,18 @@ function onSubmit() {
       ) }}
     </p>
 
+    <!-- El equipo va en su propia fila: la tarjeta vive en la columna estrecha
+         de Alertas, y compartiendo fila con los minutos y el boton el selector
+         quedaba en unos 45 px, sin que se leyera ningun nombre. -->
     <form
       v-else
-      class="mt-4 grid items-end gap-3 sm:grid-cols-[1fr_auto_auto]"
+      class="mt-4 grid grid-cols-[1fr_auto] items-end gap-3"
       @submit.prevent="onSubmit"
     >
-      <UiField :label="t('Equipo', 'Device')">
+      <UiField
+        class="col-span-2"
+        :label="t('Equipo', 'Device')"
+      >
         <select
           v-model="deviceId"
           class="input-field"
@@ -170,7 +176,7 @@ function onSubmit() {
           type="number"
           min="1"
           step="1"
-          class="input-field sm:w-28"
+          class="input-field"
         >
       </UiField>
       <UiButton

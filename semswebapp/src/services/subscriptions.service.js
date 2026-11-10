@@ -1,10 +1,5 @@
 import { api, DEMO_MODE, delay } from "@/lib/api";
-import {
-  demoPlans,
-  demoSubscription,
-  demoPaymentMethods,
-  demoInvoices,
-} from "@/lib/demoExtra";
+import { demoPlans, demoSubscription, demoInvoices } from "@/lib/demoExtra";
 import { tierFromName } from "@/lib/plan";
 
 // Suscripciones y pagos. Ambos modulos exponen sus rutas bajo /api/v1.
@@ -27,13 +22,15 @@ function periodLabel(billing) {
   return b.startsWith("year") || b.startsWith("annual") || b === "yearly" ? "año" : "mes";
 }
 
+// Codigo, nombre y valor; el texto lo pone la vista con planFeatureLabel, que
+// es donde se conoce el idioma activo.
 function planFeatures(p) {
   const feats = (p.PlanFeatures ?? [])
     .filter((f) => (f.FeatureCode ?? "").toUpperCase() !== "STRIPE_PRICE_ID")
-    .map((f) => f.FeatureName || f.FeatureValue || "")
-    .filter(Boolean);
+    .map((f) => ({ code: f.FeatureCode ?? "", name: f.FeatureName ?? "", value: f.FeatureValue ?? "" }))
+    .filter((f) => f.code || f.name);
   if (feats.length > 0) return feats;
-  return p.Description ? [p.Description] : [];
+  return p.Description ? [{ code: "", name: p.Description, value: "" }] : [];
 }
 
 /** @returns {import("../types/billing").SubscriptionPlan} */
@@ -132,20 +129,37 @@ export async function getMySubscription(userId) {
   };
 }
 
+// Tarjetas de prueba que el procesador simulado del backend rechaza. En modo
+// demo no hay backend, asi que se reproduce aqui el mismo comportamiento.
+const RECHAZADAS_EN_DEMO = new Set(["4000000000000002", "4000000000009995"]);
+
 /**
- * Cambia de plan si ya hay suscripcion; si no, crea una nueva.
- * @param {{planId: string, subscriptionId?: string, userId: string}} args
+ * Contrata un plan. Si cuesta, el backend cobra la tarjeta con su procesador
+ * simulado y solo cambia el plan si el cobro se aprueba; el importe lo pone el
+ * plan guardado, no esta pagina. Un rechazo llega como 402 con el motivo.
+ *
+ * @param {{userId: string, planId: string,
+ *          card?: {number: string, expMonth: number, expYear: number, cvc: string}}} args
  */
-export async function changePlan(args) {
+export async function purchasePlan(args) {
   if (DEMO_MODE) {
-    await delay(400);
+    await delay(500);
+    const numero = String(args.card?.number ?? "").replace(/\D/g, "");
+    if (RECHAZADAS_EN_DEMO.has(numero)) {
+      throw { response: { status: 402, data: { code: "PAYMENT_DECLINED", message: "card_declined" } } };
+    }
     return;
   }
-  if (args.subscriptionId) {
-    await api.patch(`${BASE}/subscriptions/${args.subscriptionId}/change-plan`, { new_plan_id: args.planId });
-  } else {
-    await api.post(`${BASE}/subscriptions`, { plan_id: args.planId, user_id: args.userId });
-  }
+  await api.post(`${BASE}/subscriptions/purchase`, {
+    user_id: args.userId,
+    plan_id: args.planId,
+    ...(args.card && {
+      card_number: args.card.number,
+      exp_month: args.card.expMonth,
+      exp_year: args.card.expYear,
+      cvc: args.card.cvc,
+    }),
+  });
 }
 
 export async function cancelSubscription(subscriptionId) {
@@ -154,50 +168,6 @@ export async function cancelSubscription(subscriptionId) {
     return;
   }
   await api.patch(`${BASE}/subscriptions/${subscriptionId}/cancel`);
-}
-
-/** @returns {Promise<import("../types/billing").PaymentMethod[]>} */
-export async function getPaymentMethods(userId) {
-  if (DEMO_MODE) {
-    await delay(250);
-    return demoPaymentMethods;
-  }
-  const { data } = await api.get(`${BASE}/payment-methods/user/${userId}`);
-  return (data ?? []).map((m) => ({
-    id: m.payment_method_id,
-    brand: m.brand ? m.brand.charAt(0).toUpperCase() + m.brand.slice(1) : "Tarjeta",
-    last4: m.last4 ?? "····",
-    expMonth: m.exp_month ?? 0,
-    expYear: m.exp_year ?? 0,
-    primary: Boolean(m.is_default),
-  }));
-}
-
-/**
- * Registra en el backend una tarjeta YA TOKENIZADA por Stripe (pm_xxx).
- *
- * El numero completo y el CVV nunca pasan por aqui: los captura el formulario
- * de Stripe y no tocan ni esta aplicacion ni la base de datos.
- */
-export async function addPaymentMethod(userId, stripePaymentMethodId) {
-  if (DEMO_MODE) {
-    await delay(300);
-    return;
-  }
-  await api.post(`${BASE}/payment-methods`, {
-    user_id: userId,
-    type: "card",
-    stripe_payment_method_id: stripePaymentMethodId,
-    is_default: true,
-  });
-}
-
-export async function deletePaymentMethod(paymentMethodId) {
-  if (DEMO_MODE) {
-    await delay(200);
-    return;
-  }
-  await api.delete(`${BASE}/payment-methods/${paymentMethodId}`);
 }
 
 /**
@@ -219,6 +189,14 @@ function estadoDelPago(status) {
     default:
       return "PENDING";
   }
+}
+
+// "simulated_card visa **** 4242" -> "Visa •••• 4242". Otros valores se
+// muestran tal cual.
+function medioDePago(etiqueta) {
+  const m = /^simulated_card (\w+) \*{4} (\d{4})$/.exec(String(etiqueta ?? ""));
+  if (!m) return etiqueta || null;
+  return `${m[1].charAt(0).toUpperCase()}${m[1].slice(1)} •••• ${m[2]}`;
 }
 
 /**
@@ -246,6 +224,8 @@ export async function getInvoices(userId) {
   const pagos = data ?? [];
   const comprobantes = await Promise.all(
     pagos.map(async (p) => {
+      // Un pago rechazado no tiene comprobante: pedirlo solo daba un 404.
+      if (estadoDelPago(p.status) === "FAILED") return null;
       try {
         const { data: inv } = await api.get(`${BASE}/invoices/payment/${p.payment_id}`);
         return inv;
@@ -259,40 +239,11 @@ export async function getInvoices(userId) {
     return {
       id: inv?.invoice_id ?? p.payment_id,
       number: inv?.invoice_number ?? null,
-      pdfUrl: inv?.pdf_url ?? null,
       date: (inv?.issued_at || p.paid_at || p.created_at || "").slice(0, 10),
       amount: inv?.total_amount ?? p.amount ?? 0,
+      method: medioDePago(p.payment_method),
       status: estadoDelPago(p.status),
-      description: inv?.invoice_number
-        ? `Comprobante ${inv.invoice_number}`
-        : `Pago ${String(p.currency ?? "PEN").toUpperCase()}`,
+      description: inv?.invoice_number ? `Comprobante ${inv.invoice_number}` : "",
     };
   });
-}
-
-/**
- * Crea una sesion de Stripe Checkout y devuelve la URL a la que redirigir.
- *
- * Con esto el pago ocurre en la pagina de Stripe (RF-BILL-02): la aplicacion
- * nunca toca datos de tarjeta.
- *
- * @param {{userId: string, amount: number, subscriptionId?: string, planName?: string}} args
- * @returns {Promise<string>} la URL de Stripe, o cadena vacia en modo demo
- */
-export async function createCheckoutSession(args) {
-  if (DEMO_MODE) {
-    await delay(300);
-    return ""; // en demo no hay redireccion real
-  }
-  const origin = window.location.origin;
-  const { data } = await api.post(`${BASE}/payments/checkout-session`, {
-    user_id: args.userId,
-    subscription_id: args.subscriptionId,
-    amount: args.amount,
-    currency: "pen",
-    product_name: args.planName ? `SEMS ${args.planName}` : "SEMS",
-    success_url: `${origin}/subscription?paid=1`,
-    cancel_url: `${origin}/subscription?canceled=1`,
-  });
-  return data.url;
 }

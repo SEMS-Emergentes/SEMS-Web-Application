@@ -90,7 +90,7 @@ export const demoConsumption = [
 export const demoMeters = [
   // Con local asignado: la lectura de potencia solo se interpreta contra la
   // potencia contratada de ese suministro.
-  { meterId: "m-01", name: "Medidor principal EOS", serial: "EOS-001842", siteId: "site-demo-01", zoneId: null, active: true, lastReadingKwh: 1842.6 },
+  { meterId: "m-01", name: "Medidor principal EOS", serial: "EOS-001842", siteId: "site-demo-01", zoneId: null, active: true, lastSeenAt: new Date().toISOString() },
 ];
 
 /**
@@ -140,16 +140,6 @@ export const demoBillPrediction = {
 export const demoRankings = demoConsumption
   .slice(0, 5)
   .map((c, i) => ({ rank: i + 1, deviceName: c.deviceName, kwh: c.kwh, cost: c.cost }));
-
-export const demoSummary = {
-  currentMonthCost: 231.6,
-  savingAmount: 86.4,
-  savingPct: 21,
-  projectedCost: 318.4,
-  totalKwh: 297,
-  activeDevices: demoDevices.filter((d) => d.status === "ACTIVE").length,
-  unreadAlerts: demoAnomalies.filter((a) => !a.resolved).length,
-};
 
 // ---------- Organizacion, locales y zonas ----------
 export const demoOrganization = {
