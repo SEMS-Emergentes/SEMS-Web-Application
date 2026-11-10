@@ -1,29 +1,25 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
 import { storeToRefs } from "pinia";
-import { Check, CreditCard, Star, Plus, LoaderCircle, Download, Trash2 } from "lucide-vue-next";
+import { Check, Star, LoaderCircle, Download } from "lucide-vue-next";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiCardTitle from "@/components/ui/UiCardTitle.vue";
 import UiBadge from "@/components/ui/UiBadge.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiLoading from "@/components/ui/UiLoading.vue";
 import UiErrorState from "@/components/ui/UiErrorState.vue";
-import AddCardModal from "@/components/AddCardModal.vue";
+import PlanCheckoutModal from "@/components/PlanCheckoutModal.vue";
 import {
   getPlans,
   getMySubscription,
-  changePlan,
+  purchasePlan,
   cancelSubscription,
-  getPaymentMethods,
   getInvoices,
-  createCheckoutSession,
-  deletePaymentMethod,
 } from "@/services/subscriptions.service";
 import { soles } from "@/lib/format";
 import { useAuthStore } from "@/stores/auth";
 import { useLangStore } from "@/stores/lang";
-import { STRIPE_ENABLED } from "@/lib/stripe";
 import { planFeatureLabel } from "@/lib/planFeatures";
 
 const qc = useQueryClient();
@@ -32,11 +28,10 @@ const { t } = useLangStore();
 
 const INV_COLOR = { PAID: "green", PENDING: "amber", FAILED: "rose" };
 
-const PENDING_PLAN_KEY = "sems-pending-plan";
-
-const addOpen = ref(false);
 const payError = ref("");
 const paidMsg = ref("");
+// Plan de pago cuyo formulario de cobro esta abierto.
+const pagando = ref(null);
 
 const enabled = computed(() => Boolean(user.value));
 
@@ -49,12 +44,6 @@ const { data: sub, isLoading: loadingSub } = useQuery({
 const { data: plans, isLoading: loadingPlans, isError: errorPlans } = useQuery({
   queryKey: ["plans"],
   queryFn: getPlans,
-});
-
-const { data: methods, isLoading: loadingMethods, isError: errorMethods } = useQuery({
-  queryKey: computed(() => ["paymentMethods", user.value?.id]),
-  queryFn: () => getPaymentMethods(user.value.id),
-  enabled,
 });
 
 const { data: invoices, isLoading: loadingInvoices, isError: errorInvoices } = useQuery({
@@ -76,71 +65,48 @@ const invLabel = computed(() => ({
   FAILED: t("Fallida", "Failed"),
 }));
 
+// Tras contratar se vuelve a pedir todo al backend en vez de pintar el plan
+// nuevo a mano: el plan solo cambia si el cobro se aprobo, y quien lo sabe es
+// el servidor.
+function refrescar() {
+  qc.invalidateQueries({ queryKey: ["subscription"] });
+  qc.invalidateQueries({ queryKey: ["invoices"] });
+}
+
 /**
- * Elegir plan.
- *
- * Si el plan cuesta, se abre Stripe Checkout y el cambio se aplica al volver
- * del pago: aplicarlo antes dejaria al usuario con un plan que no pago si
- * abandona la pasarela. Si es gratis, se cambia directo.
+ * Elegir plan. Uno de pago abre el formulario de cobro; uno gratuito se
+ * contrata directo, sin tarjeta.
  */
-const choose = useMutation({
-  mutationFn: async (plan) => {
-    if (plan.price > 0) {
-      // Se guarda el plan elegido para aplicarlo al regresar del pago.
-      localStorage.setItem(PENDING_PLAN_KEY, JSON.stringify({ planId: plan.id }));
-      const url = await createCheckoutSession({
-        userId: user.value.id,
-        amount: plan.price,
-        subscriptionId: sub.value?.id,
-        planName: plan.name,
-      });
-      if (url) {
-        window.location.href = url; // pasa a la ventana de Stripe
-        return;
-      }
-      // Sin URL (modo demo): se aplica el cambio directo.
-    }
-    await changePlan({ planId: plan.id, subscriptionId: sub.value?.id, userId: user.value.id });
-  },
+const elegirGratis = useMutation({
+  mutationFn: (plan) => purchasePlan({ userId: user.value.id, planId: plan.id }),
   onMutate: () => {
     payError.value = "";
     paidMsg.value = "";
   },
   onSuccess: (_data, plan) => {
-    qc.setQueriesData({ queryKey: ["subscription", user.value?.id] }, (old) =>
-      old
-        ? { ...old, planId: plan.id, planName: plan.name, price: plan.price, period: plan.period, status: "ACTIVE" }
-        : old
-    );
-    qc.invalidateQueries({ queryKey: ["invoices"] });
+    paidMsg.value = t(`Ahora estás en el plan ${plan.name}.`, `You're now on the ${plan.name} plan.`);
+    refrescar();
   },
-  onError: () => {
-    payError.value = t(
-      "No se pudo iniciar el pago. Inténtalo de nuevo.",
-      "Could not start the payment. Please try again."
-    );
+  onError: (e) => {
+    payError.value = e?.response?.data?.message || t("No se pudo cambiar de plan.", "Couldn't change plan.");
   },
 });
 
-// Pagar una factura pendiente: abre Stripe Checkout por ese monto.
-const payInvoice = useMutation({
-  mutationFn: async (amount) => {
-    const url = await createCheckoutSession({
-      userId: user.value.id,
-      amount,
-      subscriptionId: sub.value?.id,
-    });
-    if (url) window.location.href = url;
-  },
-  onError: () => {
-    payError.value = t("No se pudo iniciar el pago.", "Could not start the payment.");
-  },
-});
+function elegir(plan) {
+  payError.value = "";
+  paidMsg.value = "";
+  if (plan.price > 0) pagando.value = plan;
+  else elegirGratis.mutate(plan);
+}
 
-const removeCard = useMutation({
-  mutationFn: deletePaymentMethod,
-  onSuccess: () => qc.invalidateQueries({ queryKey: ["paymentMethods"] }),
-});
+function onPagado(plan) {
+  pagando.value = null;
+  paidMsg.value = t(
+    `¡Pago aprobado! Ya estás en el plan ${plan.name}.`,
+    `Payment approved! You're now on the ${plan.name} plan.`
+  );
+  refrescar();
+}
 
 const cancel = useMutation({
   mutationFn: () => cancelSubscription(sub.value.id),
@@ -151,39 +117,29 @@ const cancel = useMutation({
   },
 });
 
-// Al volver de Stripe Checkout: aplica el plan pendiente y limpia la URL.
-onMounted(() => {
-  const params = new URLSearchParams(window.location.search);
+// El intento rechazado tambien sale en el historial, pero dicho como lo que
+// es; antes se leia "Pago PEN" y un trozo de identificador.
+function tituloDelPago(inv) {
+  if (inv.number) return `${t("Comprobante", "Receipt")} ${inv.number}`;
+  if (inv.status === "FAILED") return t("Pago rechazado", "Declined payment");
+  return inv.description || t("Pago pendiente", "Pending payment");
+}
 
-  if (params.get("paid") === "1") {
-    const raw = localStorage.getItem(PENDING_PLAN_KEY);
-    if (raw) {
-      try {
-        const { planId } = JSON.parse(raw);
-        changePlan({ planId, subscriptionId: sub.value?.id, userId: user.value.id }).catch(() => {});
-      } catch {
-        /* dato corrupto: se ignora y se limpia igual */
-      }
-      localStorage.removeItem(PENDING_PLAN_KEY);
-    }
-    paidMsg.value = t(
-      "¡Pago realizado! Tu comprobante llegará por correo.",
-      "Payment complete! Your receipt will arrive by email."
-    );
-    qc.invalidateQueries({ queryKey: ["invoices"] });
-    qc.invalidateQueries({ queryKey: ["subscription"] });
-    window.history.replaceState({}, "", "/subscription");
-  } else if (params.get("canceled") === "1") {
-    payError.value = t("Pago cancelado.", "Payment canceled.");
-    window.history.replaceState({}, "", "/subscription");
-  }
-});
+// jsPDF pesa: se carga solo cuando alguien descarga un comprobante.
+async function descargar(inv) {
+  const { generateReceipt } = await import("@/lib/receipt");
+  generateReceipt({
+    number: inv.number,
+    date: inv.date,
+    amount: inv.amount,
+    method: inv.method,
+    userEmail: user.value?.email ?? "",
+    lang: t("es", "en"),
+  });
+}
 
 function isChoosing(planId) {
-  return choose.isPending.value && choose.variables.value?.id === planId;
-}
-function isRemoving(id) {
-  return removeCard.isPending.value && removeCard.variables.value === id;
+  return elegirGratis.isPending.value && elegirGratis.variables.value?.id === planId;
 }
 </script>
 
@@ -194,7 +150,7 @@ function isRemoving(id) {
         {{ t("Suscripción y pagos", "Subscription & payments") }}
       </h2>
       <p class="text-sm text-slate-500 dark:text-slate-400">
-        {{ t("Gestiona tu plan, métodos de pago y facturas.", "Manage your plan, payment methods and invoices.") }}
+        {{ t("Gestiona tu plan y tus comprobantes.", "Manage your plan and receipts.") }}
       </p>
     </div>
 
@@ -223,8 +179,12 @@ function isRemoving(id) {
             </span>
           </div>
           <p class="mt-1 text-sm text-blue-100/80">
-            {{ soles(sub.price) }} / {{ sub.period }} · {{ t("se renueva el", "renews on") }}
-            {{ sub.renewalDate }}
+            {{ soles(sub.price) }} / {{ sub.period }}
+            <!-- Sin fecha de fin no hay nada que anunciar: "se renueva el —"
+                 parecia un dato que faltaba. -->
+            <template v-if="sub.renewalDate && sub.renewalDate !== '—'">
+              · {{ t("se renueva el", "renews on") }} {{ sub.renewalDate }}
+            </template>
           </p>
         </div>
         <button
@@ -328,8 +288,8 @@ function isRemoving(id) {
               v-else
               :variant="plan.recommended ? 'primary' : 'outline'"
               class="w-full"
-              :disabled="choose.isPending.value"
-              @click="choose.mutate(plan)"
+              :disabled="elegirGratis.isPending.value"
+              @click="elegir(plan)"
             >
               <LoaderCircle
                 v-if="isChoosing(plan.id)"
@@ -346,158 +306,71 @@ function isRemoving(id) {
       </div>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-2">
-      <!-- Metodos de pago -->
-      <UiCard>
-        <UiCardTitle>
-          {{ t("Métodos de pago", "Payment methods") }}
-          <template #action>
-            <UiButton
-              v-if="STRIPE_ENABLED"
-              variant="ghost"
-              class="!py-1 !text-xs"
-              @click="addOpen = true"
-            >
-              <Plus class="h-3.5 w-3.5" /> {{ t("Agregar", "Add") }}
-            </UiButton>
-          </template>
-        </UiCardTitle>
-
-        <UiLoading v-if="loadingMethods" />
-        <UiErrorState v-else-if="errorMethods || !methods" />
-        <p
-          v-else-if="methods.length === 0"
-          class="py-6 text-center text-sm text-slate-400"
+    <!-- Facturas -->
+    <UiCard>
+      <UiCardTitle>{{ t("Historial de facturas", "Invoice history") }}</UiCardTitle>
+      <UiLoading v-if="loadingInvoices" />
+      <UiErrorState v-else-if="errorInvoices || !invoices" />
+      <p
+        v-else-if="invoices.length === 0"
+        class="py-6 text-center text-sm text-slate-400"
+      >
+        {{ t("Aún no tienes pagos registrados.", "No payments yet.") }}
+      </p>
+      <ul
+        v-else
+        class="divide-y divide-slate-100 dark:divide-navy-800"
+      >
+        <li
+          v-for="inv in invoices"
+          :key="inv.id"
+          class="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
         >
-          {{
-            STRIPE_ENABLED
-              ? t('Aún no tienes tarjetas. Agrega una con "Agregar".', 'No cards yet. Add one with "Add".')
-              : t("No hay métodos de pago.", "No payment methods.")
-          }}
-        </p>
-        <ul
-          v-else
-          class="space-y-3"
-        >
-          <li
-            v-for="m in methods"
-            :key="m.id"
-            class="flex items-center gap-3 rounded-lg border border-slate-100 p-3 dark:border-navy-800"
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium text-slate-900 dark:text-white">
+              {{ tituloDelPago(inv) }}
+            </p>
+            <p class="text-xs text-slate-400">
+              {{ inv.date }}<template v-if="inv.method">
+                · {{ inv.method }}
+              </template>
+            </p>
+          </div>
+          <span class="text-sm font-semibold text-slate-900 dark:text-white">{{ soles(inv.amount) }}</span>
+          <UiBadge :color="INV_COLOR[inv.status]">
+            {{ invLabel[inv.status] }}
+          </UiBadge>
+          <!-- Un pago cobrado tiene comprobante y se descarga; uno rechazado
+               no, porque no se cobro nada. -->
+          <button
+            v-if="inv.status === 'PAID' && inv.number"
+            type="button"
+            class="text-slate-400 transition-colors hover:text-blue-600"
+            :aria-label="t('Descargar comprobante', 'Download receipt')"
+            :title="t('Descargar comprobante', 'Download receipt')"
+            @click="descargar(inv)"
           >
-            <span
-              class="flex h-9 w-12 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600 dark:bg-navy-800 dark:text-slate-300"
-            >
-              <CreditCard class="h-4 w-4" />
-            </span>
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-slate-900 dark:text-white">
-                {{ m.brand }} •••• {{ m.last4 }}
-              </p>
-              <p class="text-xs text-slate-400">
-                {{ t("Vence", "Expires") }} {{ String(m.expMonth).padStart(2, "0") }}/{{ m.expYear }}
-              </p>
-            </div>
-            <UiBadge
-              v-if="m.primary"
-              color="blue"
-            >
-              {{ t("Principal", "Default") }}
-            </UiBadge>
-            <button
-              type="button"
-              :disabled="removeCard.isPending.value"
-              :aria-label="t('Eliminar tarjeta', 'Delete card')"
-              class="text-slate-300 transition-colors hover:text-rose-500 disabled:opacity-50 dark:text-navy-700 dark:hover:text-rose-400"
-              @click="removeCard.mutate(m.id)"
-            >
-              <LoaderCircle
-                v-if="isRemoving(m.id)"
-                class="h-4 w-4 animate-spin"
-              />
-              <Trash2
-                v-else
-                class="h-4 w-4"
-              />
-            </button>
-          </li>
-        </ul>
-      </UiCard>
-
-      <!-- Facturas -->
-      <UiCard>
-        <UiCardTitle>{{ t("Historial de facturas", "Invoice history") }}</UiCardTitle>
-        <UiLoading v-if="loadingInvoices" />
-        <UiErrorState v-else-if="errorInvoices || !invoices" />
-        <p
-          v-else-if="invoices.length === 0"
-          class="py-6 text-center text-sm text-slate-400"
-        >
-          {{ t("Aún no tienes pagos registrados.", "No payments yet.") }}
-        </p>
-        <ul
-          v-else
-          class="divide-y divide-slate-100 dark:divide-navy-800"
-        >
-          <li
-            v-for="inv in invoices"
-            :key="inv.id"
-            class="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+            <Download class="h-4 w-4" />
+          </button>
+          <span
+            v-else
+            class="text-slate-200 dark:text-navy-700"
+            :title="inv.status === 'FAILED'
+              ? t('Sin comprobante: el pago no se cobró', 'No receipt: the payment was not charged')
+              : t('Comprobante aún no emitido', 'Receipt not issued yet')"
           >
-            <div class="min-w-0 flex-1">
-              <p class="truncate text-sm font-medium text-slate-900 dark:text-white">
-                {{ inv.description }}
-              </p>
-              <p class="text-xs text-slate-400">
-                {{ inv.date }} · {{ inv.number || inv.id.slice(0, 8) }}
-              </p>
-            </div>
-            <span class="text-sm font-semibold text-slate-900 dark:text-white">{{ soles(inv.amount) }}</span>
-            <UiBadge :color="INV_COLOR[inv.status]">
-              {{ invLabel[inv.status] }}
-            </UiBadge>
-            <button
-              v-if="inv.status === 'PENDING'"
-              type="button"
-              :disabled="payInvoice.isPending.value"
-              class="rounded-md bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
-              @click="payInvoice.mutate(inv.amount)"
-            >
-              {{ t("Pagar", "Pay") }}
-            </button>
-            <!-- El comprobante se descarga del PDF que emite el modulo de
-                 pagos. Antes este boton no hacia nada: el numero y el PDF
-                 nunca llegaban a la pantalla, que es justo lo que hace falta
-                 para rendir el gasto. Un pago sin comprobante emitido se
-                 muestra sin enlace, porque el pago existe aunque la factura
-                 todavia no se haya emitido. -->
-            <a
-              v-if="inv.pdfUrl"
-              :href="inv.pdfUrl"
-              target="_blank"
-              rel="noopener"
-              class="text-slate-400 transition-colors hover:text-blue-600"
-              :aria-label="t('Descargar comprobante', 'Download receipt')"
-              :title="t('Descargar comprobante', 'Download receipt')"
-            >
-              <Download class="h-4 w-4" />
-            </a>
-            <span
-              v-else
-              class="text-slate-200 dark:text-navy-700"
-              :title="t('Comprobante aún no emitido', 'Receipt not issued yet')"
-            >
-              <Download class="h-4 w-4" />
-            </span>
-          </li>
-        </ul>
-      </UiCard>
-    </div>
+            <Download class="h-4 w-4" />
+          </span>
+        </li>
+      </ul>
+    </UiCard>
 
-    <AddCardModal
-      v-if="addOpen && user"
+    <PlanCheckoutModal
+      v-if="pagando && user"
       :user-id="user.id"
-      @close="addOpen = false"
-      @saved="qc.invalidateQueries({ queryKey: ['paymentMethods'] })"
+      :plan="pagando"
+      @close="pagando = null"
+      @paid="onPagado"
     />
   </div>
 </template>

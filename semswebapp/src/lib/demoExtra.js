@@ -42,11 +42,6 @@ export const demoSubscription = {
   period: "mes",
 };
 
-export const demoPaymentMethods = [
-  { id: "pm-01", brand: "Visa", last4: "4242", expMonth: 8, expYear: 27, primary: true },
-  { id: "pm-02", brand: "Mastercard", last4: "5588", expMonth: 3, expYear: 26, primary: false },
-];
-
 export const demoInvoices = [
   { id: "inv-1042", date: "15 jun 2026", amount: 149, status: "PAID", description: "Plan Business · Junio" },
   { id: "inv-1019", date: "15 may 2026", amount: 149, status: "PAID", description: "Plan Business · Mayo" },
